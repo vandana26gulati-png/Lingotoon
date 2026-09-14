@@ -24,7 +24,7 @@
  */
 
 // Default Folder ID fallback if not provided in the request payload
-var DEFAULT_FOLDER_ID = ""; // Optional: Paste your folder ID here, or pass it from the app
+var DEFAULT_FOLDER_ID = "1iwJh3GtwDtAjUy4t1FeqBgw0b_XBmyva";
 
 /**
  * Handles HTTP POST requests (image uploads & database saves)

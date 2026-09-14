@@ -33,7 +33,7 @@ const APPS_SCRIPT_TEMPLATE = `/**
  * LINGOTOON ANIMATION STUDIO - GOOGLE DRIVE CLOUD BRIDGE
  * Deployed under your personal Google account with TBs of storage!
  */
-var DEFAULT_FOLDER_ID = "";
+var DEFAULT_FOLDER_ID = "1iwJh3GtwDtAjUy4t1FeqBgw0b_XBmyva";
 
 function doPost(e) {
   try {
