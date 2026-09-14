@@ -317,7 +317,7 @@ export function VideoProvider({ children }) {
     addToast('Shot removed.', 'info');
   };
 
-  const saveNewVersion = (videoId, notes = '') => {
+  const saveNewVersion = (videoId, notes = '', frontImage = null) => {
     setVideos(prev => {
       const target = prev[videoId];
       if (!target) return prev;
@@ -330,6 +330,7 @@ export function VideoProvider({ children }) {
         status: 'draft',
         approvedBy: '—',
         notes: notes || 'Published snapshot from live storyboard.',
+        frontImage: frontImage || target.storyboardCover || target.shots[0]?.pic || null,
         snapshot: target.shots.map(s => s.desc.slice(0, 30) + (s.desc.length > 30 ? '…' : ''))
       };
 

@@ -37,6 +37,7 @@ export default function VersionsTab({ video }) {
             <thead>
               <tr>
                 <th>Version</th>
+                <th>Front Image</th>
                 <th>Date Uploaded</th>
                 <th>Uploaded By</th>
                 <th>Shots</th>
@@ -49,12 +50,25 @@ export default function VersionsTab({ video }) {
             <tbody>
               {versions.map((ver, idx) => {
                 const isExpanded = expandedIndex === idx;
+                const frontArt = ver.frontImage || video.storyboardCover || video.shots[0]?.pic;
 
                 return (
                   <React.Fragment key={ver.version || idx}>
                     <tr>
-                      <td style={{ fontWeight: 700, color: 'var(--lilac)' }}>
+                      <td style={{ fontWeight: 700, color: 'var(--grape)' }}>
                         v{ver.version}
+                      </td>
+                      <td>
+                        {frontArt ? (
+                          <img
+                            src={frontArt}
+                            alt={`v${ver.version} Front Image`}
+                            className="version-front-thumb"
+                            title="Front Keyframe Image of this storyboard"
+                          />
+                        ) : (
+                          <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>No front image</span>
+                        )}
                       </td>
                       <td>{ver.date}</td>
                       <td>{ver.uploadedBy}</td>
@@ -92,7 +106,7 @@ export default function VersionsTab({ video }) {
 
                     {isExpanded && (
                       <tr className="expand-row show">
-                        <td colSpan={8}>
+                        <td colSpan={9}>
                           <div style={{ fontSize: '11.5px', color: 'var(--iris)', marginBottom: '6px', fontWeight: 600 }}>
                             Snapshot Shots in v{ver.version}:
                           </div>

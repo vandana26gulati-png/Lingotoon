@@ -1437,3 +1437,44 @@ td {
   gap: 12px;
   min-width: 260px;
 }
+
+/* ====================================================
+   Front Storyboard Image & Cover Banner Styles
+   ==================================================== */
+.shot-front-hero-wrap {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.shot-front-hero-wrap .img-frame-container {
+  height: 200px;
+  border-radius: var(--radius-md);
+}
+
+.storyboard-front-cover-card {
+  background: #ffffff;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.storyboard-front-cover-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.version-front-thumb {
+  width: 54px;
+  height: 36px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  display: inline-block;
+  vertical-align: middle;
+}
+
