@@ -321,9 +321,9 @@ h1, h2, h3, h4, .font-serif {
 .pipeline {
   display: flex;
   gap: 8px;
-  margin-bottom: 28px;
+  margin-bottom: 26px;
   flex-wrap: wrap;
-  border-bottom: 1.5px solid var(--line);
+  border-bottom: 1px solid var(--line);
   padding-bottom: 14px;
 }
 .pipeline-step {
@@ -331,16 +331,19 @@ h1, h2, h3, h4, .font-serif {
   font-weight: 600;
   color: var(--text-muted);
   background: #ffffff;
-  border: 1.5px solid var(--line);
-  padding: 7px 16px;
+  border: 1px solid var(--line);
+  padding: 6px 14px;
   border-radius: var(--radius-full);
   cursor: pointer;
   transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 .pipeline-step:hover {
-  background: #ede7f6;
+  background: #f7f4fc;
   color: var(--grape);
-  border-color: var(--line-light);
+  border-color: var(--grape-light);
 }
 .pipeline-step.current {
   background: var(--grape) !important;
@@ -576,60 +579,118 @@ textarea:focus, input:focus, select:focus {
 .board {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 }
-.shot-card {
-  background: #ffffff;
-  border: 1.5px solid var(--line);
-  border-radius: var(--radius-lg);
-  padding: 20px;
+
+/* Modern Cinema Grid Layout (Uncluttered, Minimal) */
+.cinema-grid {
   display: grid;
-  grid-template-columns: 48px 1fr 210px;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
   gap: 20px;
-  box-shadow: var(--shadow-sm);
 }
-.shot-card:hover {
-  border-color: var(--line-light);
-}
-.shot-num {
-  font-family: var(--font-serif);
-  font-size: 24px;
-  color: var(--grape);
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: 4px;
-}
-.shot-actions {
+
+.cinema-card {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(109, 40, 217, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   display: flex;
   flex-direction: column;
+}
+
+.cinema-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(109, 40, 217, 0.08);
+  border-color: var(--line-light);
+}
+
+.cinema-card-head {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  background: #fbf9fe;
+}
+
+.cinema-card-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+/* Modern Minimal Sequence Card */
+.shot-card-minimal {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(109, 40, 217, 0.03);
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.shot-card-minimal:hover {
+  border-color: var(--line-light);
+  box-shadow: 0 6px 18px rgba(109, 40, 217, 0.06);
+}
+
+.shot-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 8px;
 }
-.shot-pic-row {
+
+.shot-quick-actions {
   display: flex;
-  gap: 12px;
   align-items: center;
-  margin-bottom: 14px;
+  gap: 4px;
+  background: var(--panel-2);
+  padding: 3px 6px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
 }
-.shot-pic {
-  width: 76px;
-  height: 52px;
-  border-radius: var(--radius-sm);
-  background: #ede7f6;
+
+.quick-icon-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.quick-icon-btn:hover:not(:disabled) {
+  background: #ffffff;
   color: var(--grape);
-  font-size: 9.5px;
-  border: 1px solid var(--line);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
 }
-.shot-pic.empty {
-  border: 1.5px dashed var(--line-light);
-  background: #fbf9fe;
-  color: var(--text-dim);
+
+.quick-icon-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
+
+.quick-icon-btn.danger:hover {
+  background: var(--bad-bg);
+  color: var(--bad);
+}
+
 .rec-box {
-  margin-top: 14px;
+  margin-top: 12px;
   background: var(--bad-bg);
   border: 1px solid var(--bad-border);
   border-radius: var(--radius-md);

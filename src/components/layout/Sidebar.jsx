@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useVideo } from '../../context/VideoContext';
-import { Film, Coins, Sparkles, RotateCcw, Download, Layers } from 'lucide-react';
+import GoogleDriveModal from '../common/GoogleDriveModal';
+import { Film, Coins, Sparkles, RotateCcw, Download, Layers, HardDrive } from 'lucide-react';
 
 export default function Sidebar() {
   const { topView, setTopView, resetToDemoData, exportDataAsJSON, videos } = useVideo();
+  const [isDriveModalOpen, setIsDriveModalOpen] = useState(false);
 
   const totalVideos = Object.keys(videos).length;
 
@@ -61,6 +63,16 @@ export default function Sidebar() {
       <div style={{ padding: '12px 6px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <button
           className="btn btn-ghost btn-sm"
+          style={{ width: '100%', fontSize: '11px', justifyContent: 'flex-start', color: '#ffd859' }}
+          onClick={() => setIsDriveModalOpen(true)}
+          title="Google Drive cloud storage & sync"
+        >
+          <HardDrive className="w-3.5 h-3.5 text-yellow-300" />
+          Google Drive Hub
+        </button>
+
+        <button
+          className="btn btn-ghost btn-sm"
           style={{ width: '100%', fontSize: '11px', justifyContent: 'flex-start' }}
           onClick={exportDataAsJSON}
           title="Download full project JSON"
@@ -83,6 +95,11 @@ export default function Sidebar() {
       <div className="sidebar-footer">
         <p>Each video is its own folder — storyboards, prompts, generation history and platform reviews all live inside it.</p>
       </div>
+
+      <GoogleDriveModal
+        isOpen={isDriveModalOpen}
+        onClose={() => setIsDriveModalOpen(false)}
+      />
     </aside>
   );
 }

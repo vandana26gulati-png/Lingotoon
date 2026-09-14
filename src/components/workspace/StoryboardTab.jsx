@@ -3,6 +3,7 @@ import { useVideo } from '../../context/VideoContext';
 import { CAMERA_OPTIONS, REJECTION_REASONS } from '../../data/initialData';
 import Modal from '../common/Modal';
 import ImageUploadBox from '../common/ImageUploadBox';
+import GoogleDriveModal from '../common/GoogleDriveModal';
 import {
   Plus,
   ArrowUp,
@@ -16,7 +17,11 @@ import {
   RotateCcw,
   Film,
   LayoutGrid,
-  Columns
+  List,
+  HardDrive,
+  Clock,
+  User,
+  Check
 } from 'lucide-react';
 
 export default function StoryboardTab({ video }) {
@@ -35,12 +40,15 @@ export default function StoryboardTab({ video }) {
   const [rejectReason, setRejectReason] = useState('');
   const [rejectNotes, setRejectNotes] = useState('');
 
-  const [layoutMode, setLayoutMode] = useState('front'); // 'front' (image on front/top) | 'split' (side-by-side)
+  const [layoutMode, setLayoutMode] = useState('grid'); // 'grid' (cinema card gallery) | 'sequence' (linear list)
   const [showFrontCover, setShowFrontCover] = useState(Boolean(video.storyboardCover || video.coverImage));
+  const [isDriveModalOpen, setIsDriveModalOpen] = useState(false);
 
   const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
   const [versionNotes, setVersionNotes] = useState('');
   const [versionFrontImage, setVersionFrontImage] = useState(video.storyboardCover || video.shots?.[0]?.pic || null);
+
+  const studioDriveFolder = localStorage.getItem('lingotoon_studio_gdrive_folder');
 
   const handleOpenReject = (idx) => {
     setActiveRejectIndex(activeRejectIndex === idx ? null : idx);
@@ -67,91 +75,110 @@ export default function StoryboardTab({ video }) {
 
   return (
     <div>
-      {/* Storyboard Front Cover & Sequence Slate */}
+      {/* Sequence Slate / Front Cover */}
       <div className="storyboard-front-cover-card">
         <div className="storyboard-front-cover-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Film className="w-4 h-4 text-purple-600" />
-            <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-bright)' }}>
-              Storyboard Sequence Front Cover
+            <span style={{ fontWeight: 700, fontSize: '13.5px', color: 'var(--text-bright)' }}>
+              Storyboard Sequence Front Slate
             </span>
-            <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
-              (Front slate image establishing this entire storyboard sequence)
-            </span>
+            {studioDriveFolder && (
+              <span style={{ fontSize: '11px', color: '#15803d', background: '#e8f7ee', padding: '2px 8px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <Check className="w-3 h-3" /> Drive Connected
+              </span>
+            )}
           </div>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            style={{ fontSize: '11px', padding: '3px 10px' }}
-            onClick={() => setShowFrontCover(!showFrontCover)}
-          >
-            {showFrontCover ? 'Collapse Front Cover' : '+ Add / View Front Cover'}
-          </button>
+
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              style={{ fontSize: '11.5px', padding: '3px 10px' }}
+              onClick={() => setIsDriveModalOpen(true)}
+              title="Configure Google Drive folder & database sync"
+            >
+              <HardDrive className="w-3.5 h-3.5 text-purple-600" />
+              Google Drive Cloud
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              style={{ fontSize: '11px', padding: '3px 10px' }}
+              onClick={() => setShowFrontCover(!showFrontCover)}
+            >
+              {showFrontCover ? 'Hide Slate' : '+ View Front Slate'}
+            </button>
+          </div>
         </div>
 
         {showFrontCover && (
-          <div style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap', paddingTop: '10px' }}>
-            <div style={{ flex: '0 0 280px', maxWidth: '320px', width: '100%' }}>
+          <div style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap', paddingTop: '8px' }}>
+            <div style={{ flex: '0 0 260px', maxWidth: '300px', width: '100%' }}>
               <ImageUploadBox
                 value={video.storyboardCover || video.coverImage}
                 onChange={(newCover) => updateVideoDetails(video.id, { storyboardCover: newCover })}
-                label="Storyboard Front Cover Art"
-                placeholder="Upload front cover image for this storyboard"
+                label="Front Sequence Cover Art"
+                placeholder="Upload or link front cover from Google Drive"
+                compact={true}
               />
             </div>
             <div style={{ flex: 1, minWidth: '240px' }}>
-              <span className="tag" style={{ background: 'var(--panel-2)', color: 'var(--grape)', border: '1px solid var(--line)', marginBottom: '8px', display: 'inline-block' }}>
-                Sequence Slate
-              </span>
-              <h3 style={{ fontSize: '18px', margin: '0 0 6px 0', color: 'var(--text-bright)' }}>
+              <h3 style={{ fontSize: '18px', margin: '0 0 4px 0', color: 'var(--text-bright)' }}>
                 {video.title} ({video.epLabel})
               </h3>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 12px 0', lineHeight: 1.5 }}>
-                {video.logline || 'Sequence storyboard sequence and visual beat breakdown.'}
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 10px 0', lineHeight: 1.45 }}>
+                {video.logline || 'Sequence storyboard and visual beat breakdown.'}
               </p>
               <div style={{ display: 'flex', gap: '14px', fontSize: '12px', color: 'var(--text-dim)', flexWrap: 'wrap' }}>
-                <span>🎬 Total Board Shots: <b>{video.shots.length}</b></span>
-                <span>👤 Sequence Director: <b>{video.createdBy}</b></span>
-                <span>📅 Created: <b>{video.createdDate}</b></span>
+                <span>🎬 <b>{video.shots.length}</b> total shots</span>
+                <span>👤 Director: <b>{video.createdBy}</b></span>
+                <span>📅 Date: <b>{video.createdDate}</b></span>
               </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Storyboard Controls & Layout Switcher */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+      {/* Modern Minimal Toolbar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h3 style={{ fontSize: '16px', margin: 0, color: 'var(--text-bright)' }}>
-            Storyboard Shots & Keyframes
-          </h3>
-          <p style={{ color: 'var(--muted)', fontSize: '12.5px', margin: '2px 0 0 0', maxWidth: '65ch' }}>
-            Each storyboard panel carries its <b>Front Image / Keyframe</b>, visual action paragraph, dialogue line, and camera angle.
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <h2 style={{ fontSize: '18px', margin: 0, color: 'var(--text-bright)' }}>
+              Storyboard Sequence
+            </h2>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--grape)', background: 'var(--panel-2)', padding: '2px 8px', borderRadius: '12px' }}>
+              {video.shots.length} panels
+            </span>
+          </div>
+          <p style={{ color: 'var(--text-muted)', fontSize: '12.5px', margin: '2px 0 0 0' }}>
+            Visual-first cinema panels with front keyframes, synced action paragraphs, and AI camera blocking.
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* Layout Mode Selector */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Layout Mode Switcher */}
           <div style={{ background: 'var(--panel-2)', padding: '3px', borderRadius: 'var(--radius-md)', display: 'flex', gap: '3px', border: '1px solid var(--line)' }}>
             <button
               type="button"
-              className={`btn btn-sm ${layoutMode === 'front' ? 'btn-primary' : 'btn-ghost'}`}
+              className={`btn btn-sm ${layoutMode === 'grid' ? 'btn-primary' : 'btn-ghost'}`}
               style={{ fontSize: '11px', padding: '4px 10px', border: 'none' }}
-              onClick={() => setLayoutMode('front')}
-              title="Display image prominently on front / top of each storyboard"
+              onClick={() => setLayoutMode('grid')}
+              title="Modern Cinema Grid Gallery"
             >
               <LayoutGrid className="w-3.5 h-3.5 mr-1" />
-              Front Image on Top
+              Cinema Grid
             </button>
             <button
               type="button"
-              className={`btn btn-sm ${layoutMode === 'split' ? 'btn-primary' : 'btn-ghost'}`}
+              className={`btn btn-sm ${layoutMode === 'sequence' ? 'btn-primary' : 'btn-ghost'}`}
               style={{ fontSize: '11px', padding: '4px 10px', border: 'none' }}
-              onClick={() => setLayoutMode('split')}
-              title="Display image on front-left side of each storyboard"
+              onClick={() => setLayoutMode('sequence')}
+              title="Linear Sequence Flow"
             >
-              <Columns className="w-3.5 h-3.5 mr-1" />
-              Side-by-Side
+              <List className="w-3.5 h-3.5 mr-1" />
+              Sequence Flow
             </button>
           </div>
 
@@ -159,247 +186,375 @@ export default function StoryboardTab({ video }) {
             <Plus className="w-3.5 h-3.5" />
             Add Shot
           </button>
+
           <button className="btn btn-primary btn-sm" onClick={handleOpenVersionModal}>
             <Save className="w-3.5 h-3.5" />
-            Save as New Version
+            Save Version
           </button>
         </div>
       </div>
 
-      <div className="board">
-        {video.shots.map((shot, idx) => {
-          const statusClass =
-            shot.status === 'approved'
-              ? 'status-approved'
-              : shot.status === 'rejected'
-              ? 'status-rejected'
-              : 'status-draft';
+      {/* Main Board Presentation */}
+      {layoutMode === 'grid' ? (
+        /* ================= 1. CINEMA GRID GALLERY ================= */
+        <div className="cinema-grid">
+          {video.shots.map((shot, idx) => {
+            const statusColor =
+              shot.status === 'approved'
+                ? 'var(--good)'
+                : shot.status === 'rejected'
+                ? 'var(--bad)'
+                : 'var(--text-dim)';
 
-          const statusText =
-            shot.status === 'approved'
-              ? 'Approved'
-              : shot.status === 'rejected'
-              ? 'Needs changes'
-              : 'Draft';
+            const statusBg =
+              shot.status === 'approved'
+                ? 'var(--good-bg)'
+                : shot.status === 'rejected'
+                ? 'var(--bad-bg)'
+                : 'var(--panel-2)';
 
-          const isRejectBoxOpen = activeRejectIndex === idx || shot.status === 'rejected';
+            const isRejectBoxOpen = activeRejectIndex === idx || shot.status === 'rejected';
 
-          return (
-            <div key={shot.id || idx} className="shot-card">
-              <div className="shot-num">{idx + 1}</div>
-
-              <div className="shot-main-content">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+            return (
+              <div key={shot.id || idx} className="cinema-card">
+                {/* Cinema Card Header */}
+                <div className="cinema-card-head">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span className={`status-pill ${statusClass}`}>{statusText}</span>
-                    <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--grape)' }}>
-                      Storyboard Panel #{idx + 1}
+                    <span style={{ fontFamily: 'var(--font-serif)', fontSize: '18px', fontWeight: 700, color: 'var(--grape)' }}>
+                      #{idx + 1 < 10 ? `0${idx + 1}` : idx + 1}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        color: statusColor,
+                        background: statusBg,
+                        padding: '2px 8px',
+                        borderRadius: '12px'
+                      }}
+                    >
+                      {shot.status === 'approved' ? 'Approved' : shot.status === 'rejected' ? 'Revision' : 'Draft'}
                     </span>
                   </div>
-                  <span style={{ fontSize: '11px', color: 'var(--toon-cyan)', fontWeight: 700 }}>
-                    ⚡ Synced with Script & Timeline
-                  </span>
-                </div>
 
-                {layoutMode === 'front' ? (
-                  /* Option A: Image right ON FRONT / top of each storyboard */
-                  <div>
-                    <div className="shot-front-hero-wrap">
-                      <ImageUploadBox
-                        value={shot.pic}
-                        onChange={(newPic) => updateShot(video.id, idx, { pic: newPic })}
-                        label={`Storyboard #${idx + 1} Front Image / Keyframe`}
-                        placeholder="Click to upload image on front of this storyboard"
-                      />
-                    </div>
-
-                    <div className="field-row" style={{ marginTop: '12px' }}>
-                      <div className="field" style={{ flex: 1, minWidth: '240px' }}>
-                        <label style={{ fontWeight: 700 }}>Action & Visual Paragraph</label>
-                        <textarea
-                          rows={2}
-                          value={shot.desc}
-                          placeholder="Describe the action and key visual details happening in this shot..."
-                          onChange={(e) => updateShot(video.id, idx, { desc: e.target.value })}
-                        />
-                      </div>
-
-                      <div className="field" style={{ flex: 1, minWidth: '240px' }}>
-                        <label style={{ fontWeight: 700 }}>Dialogue / Voiceover Line</label>
-                        <textarea
-                          rows={2}
-                          value={shot.dialogue || ''}
-                          placeholder='e.g. "Look, the lantern is moving!"'
-                          onChange={(e) => updateShot(video.id, idx, { dialogue: e.target.value })}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  /* Option B: Image on front-left column */
-                  <div className="shot-body-columns">
-                    <div className="shot-frame-col">
-                      <ImageUploadBox
-                        value={shot.pic}
-                        onChange={(newPic) => updateShot(video.id, idx, { pic: newPic })}
-                        label={`Storyboard #${idx + 1} Front Frame`}
-                        placeholder="Upload image on front"
-                      />
-                    </div>
-
-                    <div className="shot-paras-col">
-                      <div className="field">
-                        <label style={{ fontWeight: 700 }}>Action & Visual Paragraph</label>
-                        <textarea
-                          rows={3}
-                          value={shot.desc}
-                          placeholder="Describe the action and key visual details happening in this shot..."
-                          onChange={(e) => updateShot(video.id, idx, { desc: e.target.value })}
-                        />
-                      </div>
-
-                      <div className="field">
-                        <label style={{ fontWeight: 700 }}>Dialogue / Voiceover Line</label>
-                        <input
-                          type="text"
-                          value={shot.dialogue || ''}
-                          placeholder='e.g. "Look, the lantern is moving!"'
-                          onChange={(e) => updateShot(video.id, idx, { dialogue: e.target.value })}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="field-row">
-                  <div className="field" style={{ flex: '1 1 140px' }}>
-                    <label>Camera Angle</label>
-                    <select
-                      value={shot.camera}
-                      onChange={(e) => updateShot(video.id, idx, { camera: e.target.value })}
+                  {/* Discreet Hover/Top Quick Actions */}
+                  <div className="shot-quick-actions">
+                    <button
+                      type="button"
+                      className="quick-icon-btn"
+                      disabled={idx === 0}
+                      onClick={() => moveShot(video.id, idx, -1)}
+                      title="Move left/up"
                     >
-                      {CAMERA_OPTIONS.map((c) => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="field" style={{ flex: '2 1 180px' }}>
-                    <label>Characters in Shot</label>
-                    <input
-                      type="text"
-                      value={shot.chars}
-                      placeholder="e.g. Mira, Bram"
-                      onChange={(e) => updateShot(video.id, idx, { chars: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="field" style={{ width: '80px' }}>
-                    <label>Duration</label>
-                    <input
-                      type="text"
-                      value={shot.duration}
-                      onChange={(e) => updateShot(video.id, idx, { duration: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="review-row">
-                  <button
-                    className="btn btn-primary btn-sm"
-                    style={{ background: 'var(--good)', color: '#091c0e' }}
-                    onClick={() => setShotStatus(video.id, idx, 'approved')}
-                  >
-                    <CheckCircle className="w-3.5 h-3.5" />
-                    Approve
-                  </button>
-
-                  <button
-                    className="btn btn-danger btn-sm"
-                    onClick={() => handleOpenReject(idx)}
-                  >
-                    <AlertTriangle className="w-3.5 h-3.5" />
-                    Reject / Request Changes
-                  </button>
-                </div>
-
-                {isRejectBoxOpen && (
-                  <div className="rec-box show">
-                    <label>Why is this rejected? (Feeds the AI regeneration prompt)</label>
-                    <select
-                      value={shot.recReason || rejectReason}
-                      onChange={(e) => {
-                        setRejectReason(e.target.value);
-                        updateShot(video.id, idx, { recReason: e.target.value });
-                      }}
+                      <ArrowUp className="w-3 h-3" />
+                    </button>
+                    <button
+                      type="button"
+                      className="quick-icon-btn"
+                      disabled={idx === video.shots.length - 1}
+                      onClick={() => moveShot(video.id, idx, 1)}
+                      title="Move right/down"
                     >
-                      <option value="">Select reason...</option>
-                      {REJECTION_REASONS.map((r) => (
-                        <option key={r} value={r}>{r}</option>
-                      ))}
-                    </select>
+                      <ArrowDown className="w-3 h-3" />
+                    </button>
+                    <button
+                      type="button"
+                      className="quick-icon-btn"
+                      onClick={() => duplicateShot(video.id, idx)}
+                      title="Duplicate panel"
+                    >
+                      <Copy className="w-3 h-3" />
+                    </button>
+                    <button
+                      type="button"
+                      className="quick-icon-btn danger"
+                      onClick={() => deleteShot(video.id, idx)}
+                      title="Delete shot"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
 
+                {/* 16:9 Front Keyframe Image */}
+                <div style={{ padding: '12px 14px 0 14px' }}>
+                  <ImageUploadBox
+                    value={shot.pic}
+                    onChange={(newPic) => updateShot(video.id, idx, { pic: newPic })}
+                    label={`Shot ${idx + 1} Front Frame`}
+                    placeholder="Drop image or paste Google Drive link"
+                    compact={true}
+                  />
+                </div>
+
+                {/* Content Body */}
+                <div className="cinema-card-body">
+                  <div className="field">
+                    <label style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', fontWeight: 700 }}>
+                      Action Description
+                    </label>
                     <textarea
-                      placeholder="Add specific instructions for prompt regeneration..."
-                      value={shot.rec || rejectNotes}
-                      onChange={(e) => {
-                        setRejectNotes(e.target.value);
-                        updateShot(video.id, idx, { rec: e.target.value });
-                      }}
+                      rows={2}
+                      value={shot.desc}
+                      placeholder="Describe camera movement and character action..."
+                      onChange={(e) => updateShot(video.id, idx, { desc: e.target.value })}
+                      style={{ fontSize: '12.5px', lineHeight: 1.45 }}
                     />
+                  </div>
 
-                    <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
+                  <div className="field">
+                    <label style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', fontWeight: 700 }}>
+                      Dialogue / VO Line
+                    </label>
+                    <input
+                      type="text"
+                      value={shot.dialogue || ''}
+                      placeholder='e.g. "Look, the lantern is moving!"'
+                      onChange={(e) => updateShot(video.id, idx, { dialogue: e.target.value })}
+                      style={{ fontSize: '12.5px' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: 'auto', paddingTop: '4px' }}>
+                    <div style={{ flex: 1 }}>
+                      <select
+                        value={shot.camera}
+                        onChange={(e) => updateShot(video.id, idx, { camera: e.target.value })}
+                        style={{ fontSize: '11.5px', padding: '4px 8px' }}
+                      >
+                        {CAMERA_OPTIONS.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ width: '70px' }}>
+                      <input
+                        type="text"
+                        value={shot.duration || '3s'}
+                        onChange={(e) => updateShot(video.id, idx, { duration: e.target.value })}
+                        style={{ fontSize: '11.5px', padding: '4px 8px', textAlign: 'center' }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Review Bar */}
+                  <div style={{ display: 'flex', gap: '6px', paddingTop: '8px', borderTop: '1px solid var(--line)' }}>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      style={{ flex: 1, fontSize: '11.5px', padding: '5px 8px', background: 'var(--good)', color: '#091c0e' }}
+                      onClick={() => setShotStatus(video.id, idx, 'approved')}
+                    >
+                      <CheckCircle className="w-3.5 h-3.5" /> Approve
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-danger btn-sm"
+                      style={{ flex: 1, fontSize: '11.5px', padding: '5px 8px' }}
+                      onClick={() => handleOpenReject(idx)}
+                    >
+                      <AlertTriangle className="w-3.5 h-3.5" /> Revision
+                    </button>
+                  </div>
+
+                  {isRejectBoxOpen && (
+                    <div className="rec-box">
+                      <select
+                        value={shot.recReason || rejectReason}
+                        onChange={(e) => {
+                          setRejectReason(e.target.value);
+                          updateShot(video.id, idx, { recReason: e.target.value });
+                        }}
+                        style={{ fontSize: '11.5px', marginBottom: '6px' }}
+                      >
+                        <option value="">Reason for revision...</option>
+                        {REJECTION_REASONS.map((r) => (
+                          <option key={r} value={r}>{r}</option>
+                        ))}
+                      </select>
+                      <textarea
+                        rows={2}
+                        placeholder="Instructions for prompt regeneration..."
+                        value={shot.rec || rejectNotes}
+                        onChange={(e) => {
+                          setRejectNotes(e.target.value);
+                          updateShot(video.id, idx, { rec: e.target.value });
+                        }}
+                        style={{ fontSize: '11.5px' }}
+                      />
                       <button
+                        type="button"
                         className="btn btn-danger-solid btn-sm"
+                        style={{ marginTop: '6px', fontSize: '11px', width: '100%' }}
                         onClick={() => handleConfirmReject(idx)}
                       >
-                        <RotateCcw className="w-3.5 h-3.5" />
-                        Send back for regeneration
+                        <RotateCcw className="w-3 h-3 mr-1" /> Send for re-prompt
                       </button>
                     </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* ================= 2. SEQUENCE LIST FLOW ================= */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {video.shots.map((shot, idx) => {
+            const isRejectBoxOpen = activeRejectIndex === idx || shot.status === 'rejected';
+
+            return (
+              <div key={shot.id || idx} className="shot-card-minimal">
+                <div className="shot-header-row">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontFamily: 'var(--font-serif)', fontSize: '20px', fontWeight: 700, color: 'var(--grape)' }}>
+                      #{idx + 1}
+                    </span>
+                    <span className="tag" style={{ background: 'var(--panel-2)', color: 'var(--text-bright)' }}>
+                      {shot.camera}
+                    </span>
+                    <span className="tag" style={{ background: 'var(--panel-2)', color: 'var(--text-muted)' }}>
+                      {shot.duration || '3s'}
+                    </span>
+                    {shot.status === 'approved' && (
+                      <span className="tag" style={{ background: 'var(--good-bg)', color: 'var(--good)' }}>Approved</span>
+                    )}
+                    {shot.status === 'rejected' && (
+                      <span className="tag" style={{ background: 'var(--bad-bg)', color: 'var(--bad)' }}>Needs revision</span>
+                    )}
                   </div>
-                )}
+
+                  <div className="shot-quick-actions">
+                    <button
+                      type="button"
+                      className="quick-icon-btn"
+                      disabled={idx === 0}
+                      onClick={() => moveShot(video.id, idx, -1)}
+                      title="Move up"
+                    >
+                      <ArrowUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      className="quick-icon-btn"
+                      disabled={idx === video.shots.length - 1}
+                      onClick={() => moveShot(video.id, idx, 1)}
+                      title="Move down"
+                    >
+                      <ArrowDown className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      className="quick-icon-btn"
+                      onClick={() => duplicateShot(video.id, idx)}
+                      title="Duplicate"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      className="quick-icon-btn danger"
+                      onClick={() => deleteShot(video.id, idx)}
+                      title="Delete shot"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="shot-body-columns">
+                  <div className="shot-frame-col" style={{ flex: '0 0 240px' }}>
+                    <ImageUploadBox
+                      value={shot.pic}
+                      onChange={(newPic) => updateShot(video.id, idx, { pic: newPic })}
+                      label={`Shot ${idx + 1} Front Frame`}
+                      placeholder="Upload or link Drive image"
+                      compact={true}
+                    />
+                  </div>
+
+                  <div className="shot-paras-col">
+                    <div className="field">
+                      <label style={{ fontWeight: 700 }}>Action Description</label>
+                      <textarea
+                        rows={2}
+                        value={shot.desc}
+                        placeholder="Visual action..."
+                        onChange={(e) => updateShot(video.id, idx, { desc: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="field">
+                      <label style={{ fontWeight: 700 }}>Dialogue / Voiceover</label>
+                      <input
+                        type="text"
+                        value={shot.dialogue || ''}
+                        placeholder='Dialogue line...'
+                        onChange={(e) => updateShot(video.id, idx, { dialogue: e.target.value })}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '6px' }}>
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        style={{ fontSize: '11px', background: 'var(--good)', color: '#091c0e' }}
+                        onClick={() => setShotStatus(video.id, idx, 'approved')}
+                      >
+                        <CheckCircle className="w-3.5 h-3.5" /> Approve
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-danger btn-sm"
+                        style={{ fontSize: '11px' }}
+                        onClick={() => handleOpenReject(idx)}
+                      >
+                        <AlertTriangle className="w-3.5 h-3.5" /> Request Changes
+                      </button>
+                    </div>
+
+                    {isRejectBoxOpen && (
+                      <div className="rec-box">
+                        <select
+                          value={shot.recReason || rejectReason}
+                          onChange={(e) => {
+                            setRejectReason(e.target.value);
+                            updateShot(video.id, idx, { recReason: e.target.value });
+                          }}
+                          style={{ fontSize: '12px', marginBottom: '6px' }}
+                        >
+                          <option value="">Select reason...</option>
+                          {REJECTION_REASONS.map((r) => (
+                            <option key={r} value={r}>{r}</option>
+                          ))}
+                        </select>
+                        <textarea
+                          rows={2}
+                          placeholder="Revision instructions..."
+                          value={shot.rec || rejectNotes}
+                          onChange={(e) => {
+                            setRejectNotes(e.target.value);
+                            updateShot(video.id, idx, { rec: e.target.value });
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-danger-solid btn-sm"
+                          style={{ marginTop: '6px', fontSize: '11px' }}
+                          onClick={() => handleConfirmReject(idx)}
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" /> Send back
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-
-              <div className="shot-actions">
-                <button
-                  className="btn btn-move"
-                  disabled={idx === 0}
-                  onClick={() => moveShot(video.id, idx, -1)}
-                >
-                  <ArrowUp className="w-3.5 h-3.5" />
-                  Move up
-                </button>
-
-                <button
-                  className="btn btn-move"
-                  disabled={idx === video.shots.length - 1}
-                  onClick={() => moveShot(video.id, idx, 1)}
-                >
-                  <ArrowDown className="w-3.5 h-3.5" />
-                  Move down
-                </button>
-
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => duplicateShot(video.id, idx)}
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                  Duplicate
-                </button>
-
-                <button
-                  className="btn btn-danger btn-sm"
-                  onClick={() => deleteShot(video.id, idx)}
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Delete
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {video.shots.length === 0 && (
         <div className="empty-state">
@@ -455,6 +610,12 @@ export default function StoryboardTab({ video }) {
           </div>
         </form>
       </Modal>
+
+      {/* Google Drive Cloud Hub Modal */}
+      <GoogleDriveModal
+        isOpen={isDriveModalOpen}
+        onClose={() => setIsDriveModalOpen(false)}
+      />
     </div>
   );
 }
