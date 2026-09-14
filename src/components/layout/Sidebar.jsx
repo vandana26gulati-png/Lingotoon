@@ -9,12 +9,13 @@ export default function Sidebar() {
 
   return (
     <aside className="sidebar">
-      <div className="brand-wrapper">
-        <div className="brand-title">
-          <Layers className="w-5 h-5 text-purple-400" />
-          Lingo<span>toon</span>
-        </div>
-        <div className="team-badge">
+      <div className="brand-wrapper" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', paddingBottom: '16px' }}>
+        <img
+          src="/lingotoon-logo.png"
+          alt="Lingotoon"
+          style={{ width: '150px', height: 'auto', borderRadius: '10px', marginBottom: '8px', filter: 'drop-shadow(0 4px 12px rgba(109, 40, 217, 0.15))' }}
+        />
+        <div className="team-badge" style={{ justifyContent: 'center' }}>
           <span className="team-badge-dot"></span>
           Internal · Video Production
         </div>

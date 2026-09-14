@@ -3,7 +3,7 @@ import { INITIAL_VIDEOS, TOOL_OPTIONS } from '../data/initialData';
 
 const VideoContext = createContext();
 
-const STORAGE_KEY = 'lingotoon_studio_data_v1';
+const STORAGE_KEY = 'lingotoon_studio_clean_v3';
 
 export function VideoProvider({ children }) {
   const [videos, setVideos] = useState(() => {
@@ -11,17 +11,17 @@ export function VideoProvider({ children }) {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed && Object.keys(parsed).length > 0) {
+        if (parsed && typeof parsed === 'object') {
           return parsed;
         }
       }
     } catch (e) {
-      console.warn('Failed to load from localStorage, using initial seed data.', e);
+      console.warn('Failed to load from localStorage, using clean initial data.', e);
     }
     return INITIAL_VIDEOS;
   });
 
-  const [currentVideoId, setCurrentVideoId] = useState('ep1');
+  const [currentVideoId, setCurrentVideoId] = useState(null);
   const [topView, setTopView] = useState('videos'); // 'videos' | 'workspace' | 'credits'
   const [activeTab, setActiveTab] = useState('overview');
   const [toasts, setToasts] = useState([]);
