@@ -1,7 +1,14 @@
-import React, { useRef, useState } from 'react';
-import { Upload, Image as ImageIcon, Link as LinkIcon, Trash2, Maximize2, X, Sparkles, HardDrive, ExternalLink } from 'lucide-react';
+import React, { useRef, useState, useEffect } from 'react';
+import { Upload, Image as ImageIcon, Link as LinkIcon, Trash2, Maximize2, X, Sparkles, HardDrive, ExternalLink, Loader2, CloudUpload, CheckCircle2, AlertCircle } from 'lucide-react';
 import Modal from './Modal';
-import { parseGoogleDriveUrl, isGoogleDriveUrl, formatDriveFolderUrl } from '../../utils/googleDrive';
+import {
+  parseGoogleDriveUrl,
+  isGoogleDriveUrl,
+  formatDriveFolderUrl,
+  getOwnerDriveConfig,
+  isOwnerDriveConfigured,
+  uploadImageToOwnerDrive
+} from '../../utils/googleDrive';
 
 const PRESET_IMAGES = [
   { name: 'Lingotoon Mascot Bird', url: '/bird-mascot.png' },
@@ -20,10 +27,17 @@ export default function ImageUploadBox({
   const [activeTab, setActiveTab] = useState('gdrive'); // 'gdrive' | 'direct' | 'presets'
   const [urlInput, setUrlInput] = useState('');
   const [isZoomOpen, setIsZoomOpen] = useState(false);
+  
+  // Cloud Drive Upload States
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatusMsg, setUploadStatusMsg] = useState('');
+  const [uploadError, setUploadError] = useState(null);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
 
-  const studioDriveFolder = localStorage.getItem('lingotoon_studio_gdrive_folder') || '';
+  const driveConfig = getOwnerDriveConfig();
+  const isCloudHostActive = isOwnerDriveConfigured() && driveConfig.autoUpload;
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -32,12 +46,43 @@ export default function ImageUploadBox({
       return;
     }
 
+    setUploadError(null);
+    setUploadSuccess(false);
+
+    // If Owner's Google Drive is configured for auto-upload, send directly to owner's Drive!
+    if (isCloudHostActive) {
+      try {
+        setIsUploading(true);
+        setUploadStatusMsg('Uploading to Owner Google Drive (TBs Storage)...');
+
+        const uploadResult = await uploadImageToOwnerDrive(file, file.name);
+        onChange(uploadResult.directUrl);
+        setUploadSuccess(true);
+        setTimeout(() => setUploadSuccess(false), 4000);
+      } catch (err) {
+        console.warn('Direct Google Drive upload failed, falling back to local file storage:', err);
+        setUploadError(`Drive upload notice: ${err.message || 'Check connection'}. Saved locally instead.`);
+        
+        // Fallback: Read as local data URL
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          onChange(event.target?.result);
+        };
+        reader.readAsDataURL(file);
+      } finally {
+        setIsUploading(false);
+        setUploadStatusMsg('');
+        e.target.value = '';
+      }
+      return;
+    }
+
+    // Default local file reader
     const reader = new FileReader();
     reader.onload = (event) => {
       onChange(event.target?.result);
     };
     reader.readAsDataURL(file);
-
     e.target.value = '';
   };
 
@@ -76,7 +121,42 @@ export default function ImageUploadBox({
         style={{ display: 'none' }}
       />
 
-      {isImageValid ? (
+      {/* Cloud Uploading In-Progress State */}
+      {isUploading && (
+        <div
+          style={{
+            minHeight: compact ? '80px' : '110px',
+            background: 'linear-gradient(135deg, #fbf9ff 0%, #f3eeff 100%)',
+            border: '1.5px dashed var(--grape)',
+            borderRadius: 'var(--radius-md)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            padding: '12px',
+            textAlign: 'center'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--grape)', fontWeight: 700, fontSize: '12.5px' }}>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span>{uploadStatusMsg}</span>
+          </div>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+            Writing directly to your studio's Google Drive cloud host...
+          </span>
+        </div>
+      )}
+
+      {/* Upload notice message */}
+      {uploadError && !isUploading && (
+        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', color: '#b45309', padding: '6px 10px', borderRadius: 'var(--radius-sm)', fontSize: '11px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+          <span>{uploadError}</span>
+        </div>
+      )}
+
+      {!isUploading && isImageValid ? (
         <div className="img-preview-card">
           <div className="img-frame-container" onClick={() => setIsZoomOpen(true)}>
             <img src={value} alt="Visual frame reference" className="img-frame-content" />
@@ -91,11 +171,11 @@ export default function ImageUploadBox({
                   position: 'absolute',
                   top: '8px',
                   left: '8px',
-                  background: 'rgba(21, 13, 38, 0.75)',
+                  background: 'rgba(21, 13, 38, 0.78)',
                   color: '#ffd859',
                   fontSize: '10px',
                   fontWeight: 700,
-                  padding: '2px 7px',
+                  padding: '3px 8px',
                   borderRadius: '12px',
                   backdropFilter: 'blur(4px)',
                   display: 'flex',
@@ -105,21 +185,22 @@ export default function ImageUploadBox({
                 }}
               >
                 <HardDrive className="w-3 h-3" />
-                <span>Google Drive</span>
+                <span>Google Drive Host</span>
               </div>
             )}
           </div>
 
           <div className="img-card-actions">
-            <div style={{ display: 'flex', gap: '4px' }}>
+            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
               <button
                 type="button"
                 className="btn btn-ghost btn-sm"
                 style={{ fontSize: '11px', padding: '3px 8px' }}
                 onClick={() => fileInputRef.current?.click()}
-                title="Replace with file from computer"
+                title={isCloudHostActive ? "Upload new image to Owner's Drive" : "Replace with file from computer"}
               >
-                <Upload className="w-3 h-3 mr-1" /> Replace
+                {isCloudHostActive ? <CloudUpload className="w-3 h-3 mr-1 text-purple-600" /> : <Upload className="w-3 h-3 mr-1" />}
+                {isCloudHostActive ? 'Upload to Drive' : 'Replace'}
               </button>
               <button
                 type="button"
@@ -129,9 +210,9 @@ export default function ImageUploadBox({
                   setActiveTab('gdrive');
                   setIsUrlModalOpen(true);
                 }}
-                title="Link from Google Drive or web URL"
+                title="Paste Google Drive link or web URL"
               >
-                <HardDrive className="w-3 h-3 mr-1 text-purple-600" /> Drive / URL
+                <LinkIcon className="w-3 h-3 mr-1 text-purple-600" /> Link
               </button>
             </div>
 
@@ -146,17 +227,39 @@ export default function ImageUploadBox({
             </button>
           </div>
         </div>
-      ) : (
+      ) : (!isUploading && (
         <div className="img-empty-dropzone">
           <div className="img-empty-icon-wrap">
-            <ImageIcon className="w-4 h-4 text-purple-500" />
+            {isCloudHostActive ? (
+              <CloudUpload className="w-4 h-4 text-purple-600" />
+            ) : (
+              <ImageIcon className="w-4 h-4 text-purple-500" />
+            )}
           </div>
           <div className="img-empty-text">
-            <span style={{ fontWeight: 600, color: 'var(--text-bright)', fontSize: '12px' }}>
-              {label}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+              <span style={{ fontWeight: 600, color: 'var(--text-bright)', fontSize: '12px' }}>
+                {label}
+              </span>
+              {isCloudHostActive && (
+                <span
+                  style={{
+                    fontSize: '9.5px',
+                    fontWeight: 700,
+                    color: '#059669',
+                    background: '#ecfdf5',
+                    border: '1px solid #a7f3d0',
+                    padding: '1px 6px',
+                    borderRadius: '10px'
+                  }}
+                  title="Direct uploads are automatically stored in your Google Drive with TBs of storage"
+                >
+                  ☁️ Drive Host Active
+                </span>
+              )}
+            </div>
             <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-              {placeholder}
+              {isCloudHostActive ? 'Uploads save straight to Studio Google Drive' : placeholder}
             </span>
           </div>
           <div className="img-empty-buttons">
@@ -164,26 +267,35 @@ export default function ImageUploadBox({
               type="button"
               className="btn btn-primary btn-sm"
               style={{ fontSize: '11px', padding: '4px 10px' }}
-              onClick={() => {
-                setActiveTab('gdrive');
-                setIsUrlModalOpen(true);
-              }}
+              onClick={() => fileInputRef.current?.click()}
             >
-              <HardDrive className="w-3 h-3 text-yellow-300" />
-              Google Drive Link
+              {isCloudHostActive ? (
+                <>
+                  <CloudUpload className="w-3 h-3 text-yellow-300" />
+                  Upload to Drive
+                </>
+              ) : (
+                <>
+                  <Upload className="w-3 h-3" />
+                  Upload Image
+                </>
+              )}
             </button>
             <button
               type="button"
               className="btn btn-ghost btn-sm"
               style={{ fontSize: '11px', padding: '4px 10px' }}
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => {
+                setActiveTab('gdrive');
+                setIsUrlModalOpen(true);
+              }}
             >
-              <Upload className="w-3 h-3" />
-              Upload File
+              <HardDrive className="w-3 h-3 text-purple-600" />
+              Drive Link
             </button>
           </div>
         </div>
-      )}
+      ))}
 
       {/* Cloud & URL Link Modal */}
       <Modal
@@ -238,10 +350,10 @@ export default function ImageUploadBox({
                   💡 <b>Quick Tip:</b> In Google Drive, right click your image &gt; <b>Share &gt; Copy Link</b> (make sure it is set to "Anyone with link can view"). Paste it here and Lingotoon will automatically host & render it in high-res!
                 </div>
 
-                {studioDriveFolder && (
+                {driveConfig.folderId && (
                   <div style={{ marginTop: '10px' }}>
                     <a
-                      href={formatDriveFolderUrl(studioDriveFolder)}
+                      href={formatDriveFolderUrl(driveConfig.folderId)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn btn-ghost btn-sm"
@@ -327,7 +439,7 @@ export default function ImageUploadBox({
               <span>{label}</span>
               {isFromDrive && (
                 <span style={{ color: '#ffd859', fontSize: '11px', fontWeight: 600 }}>
-                  ☁️ Hosted on Google Drive
+                  ☁️ Hosted on Studio Google Drive (TBs Storage)
                 </span>
               )}
               <button
