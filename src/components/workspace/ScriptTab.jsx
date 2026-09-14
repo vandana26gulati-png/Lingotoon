@@ -12,8 +12,10 @@ import {
   Layers,
   ArrowRight,
   Clock,
-  MessageSquare
+  MessageSquare,
+  Table as TableIcon
 } from 'lucide-react';
+import AVProductionTable from './AVProductionTable';
 
 export default function ScriptTab({ video }) {
   const {
@@ -81,6 +83,15 @@ export default function ScriptTab({ video }) {
               Scene Cards
             </button>
             <button
+              className={`btn btn-sm ${viewMode === 'table' ? 'btn-primary' : 'btn-ghost'}`}
+              style={{ padding: '4px 12px', border: 'none' }}
+              onClick={() => setViewMode('table')}
+              title="Two-Column AV Production Table (Scene #, Visual, Voice Over)"
+            >
+              <TableIcon className="w-3.5 h-3.5 mr-1" />
+              AV Production Table
+            </button>
+            <button
               className={`btn btn-sm ${viewMode === 'screenplay' ? 'btn-primary' : 'btn-ghost'}`}
               style={{ padding: '4px 12px', border: 'none' }}
               onClick={() => setViewMode('screenplay')}
@@ -101,7 +112,9 @@ export default function ScriptTab({ video }) {
         </div>
       </div>
 
-      {viewMode === 'scenes' ? (
+      {viewMode === 'table' ? (
+        <AVProductionTable video={video} contextTab="script" />
+      ) : viewMode === 'scenes' ? (
         <div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {shots.map((shot, idx) => (

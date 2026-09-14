@@ -21,8 +21,10 @@ import {
   HardDrive,
   Clock,
   User,
-  Check
+  Check,
+  Table as TableIcon
 } from 'lucide-react';
+import AVProductionTable from './AVProductionTable';
 
 export default function StoryboardTab({ video }) {
   const {
@@ -180,6 +182,16 @@ export default function StoryboardTab({ video }) {
               <List className="w-3.5 h-3.5 mr-1" />
               Sequence Flow
             </button>
+            <button
+              type="button"
+              className={`btn btn-sm ${layoutMode === 'table' ? 'btn-primary' : 'btn-ghost'}`}
+              style={{ fontSize: '11px', padding: '4px 10px', border: 'none' }}
+              onClick={() => setLayoutMode('table')}
+              title="Two-Column AV Production Table (Scene #, Screen Visuals, Voice Over)"
+            >
+              <TableIcon className="w-3.5 h-3.5 mr-1" />
+              AV Production Table
+            </button>
           </div>
 
           <button className="btn btn-ghost btn-sm" onClick={() => addShot(video.id)}>
@@ -195,7 +207,10 @@ export default function StoryboardTab({ video }) {
       </div>
 
       {/* Main Board Presentation */}
-      {layoutMode === 'grid' ? (
+      {layoutMode === 'table' ? (
+        /* ================= 3. TWO-COLUMN AV PRODUCTION TABLE ================= */
+        <AVProductionTable video={video} contextTab="storyboard" />
+      ) : layoutMode === 'grid' ? (
         /* ================= 1. CINEMA GRID GALLERY ================= */
         <div className="cinema-grid">
           {video.shots.map((shot, idx) => {
