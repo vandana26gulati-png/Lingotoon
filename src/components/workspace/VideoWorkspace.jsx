@@ -7,11 +7,13 @@ import VersionsTab from './VersionsTab';
 import CharactersTab from './CharactersTab';
 import PromptsTab from './PromptsTab';
 import TimelineTab from './TimelineTab';
+import ScriptTab from './ScriptTab';
 import PlatformsTab from './PlatformsTab';
 import AssetsTab from './AssetsTab';
 
 const TABS = [
   { id: 'overview', label: 'Overview' },
+  { id: 'script', label: 'Script & Screenplay' },
   { id: 'storyboard', label: 'Storyboard' },
   { id: 'versions', label: 'Storyboard Versions' },
   { id: 'characters', label: 'Characters' },
@@ -35,7 +37,7 @@ export default function VideoWorkspace() {
   }
 
   const getTabBadge = (id) => {
-    if (id === 'storyboard') return video.shots?.length || 0;
+    if (id === 'script' || id === 'storyboard') return video.shots?.length || 0;
     if (id === 'versions') return video.versions?.length || 0;
     if (id === 'characters') return video.characters?.length || 0;
     if (id === 'prompts') return video.prompts?.length || 0;
@@ -71,6 +73,7 @@ export default function VideoWorkspace() {
 
       <div className="tab-content-area">
         {activeTab === 'overview' && <OverviewTab video={video} />}
+        {activeTab === 'script' && <ScriptTab video={video} />}
         {activeTab === 'storyboard' && <StoryboardTab video={video} />}
         {activeTab === 'versions' && <VersionsTab video={video} />}
         {activeTab === 'characters' && <CharactersTab video={video} />}

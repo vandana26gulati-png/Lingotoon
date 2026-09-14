@@ -127,10 +127,25 @@ export default function StoryboardTab({ video }) {
 
                 <div className="field-row">
                   <div className="field" style={{ flex: 1, minWidth: '240px' }}>
-                    <label>Shot Description & Action</label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                      <label>Visual Action</label>
+                      <span style={{ fontSize: '10px', color: 'var(--toon-cyan)', fontWeight: 700 }}>⚡ Synced with Script & Timeline</span>
+                    </div>
                     <textarea
                       value={shot.desc}
                       onChange={(e) => updateShot(video.id, idx, { desc: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="field-row">
+                  <div className="field" style={{ flex: 1, minWidth: '240px' }}>
+                    <label>Dialogue / Voiceover Line (Synced with Script)</label>
+                    <input
+                      type="text"
+                      value={shot.dialogue || ''}
+                      placeholder='e.g. "Look, the lantern is moving!"'
+                      onChange={(e) => updateShot(video.id, idx, { dialogue: e.target.value })}
                     />
                   </div>
                 </div>

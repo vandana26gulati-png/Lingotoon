@@ -168,10 +168,39 @@ export function VideoProvider({ children }) {
       const target = prev[videoId];
       if (!target) return prev;
       const shots = [...target.shots];
-      shots[index] = { ...shots[index], ...updates };
+      const updatedShot = { ...shots[index], ...updates };
+      shots[index] = updatedShot;
+
+      // Automatically sync compiled prompt if one exists
+      let updatedPrompts = [...(target.prompts || [])];
+      const promptIdx = updatedPrompts.findIndex(p => p.shot === index + 1);
+      if (promptIdx >= 0) {
+        const lockedChars = (target.characters || []).filter(c => c.tag === 'Locked');
+        const charRefStr = lockedChars.length
+          ? ` (featuring ${lockedChars.map(c => `${c.name} [${c.desc}]`).join(', ')})`
+          : '';
+        const dialStr = updatedShot.dialogue ? ` Dialogue line: "${updatedShot.dialogue}".` : '';
+        updatedPrompts[promptIdx] = {
+          ...updatedPrompts[promptIdx],
+          text: `${updatedShot.camera}: ${updatedShot.desc}${charRefStr}.${dialStr} Cinematic animation art style, ${updatedShot.duration}.`
+        };
+      }
+
+      // Automatically sync active queue items in timeline
+      let updatedQueue = [...(target.queue || [])];
+      updatedQueue = updatedQueue.map((q) => {
+        if (q.shot && q.shot.startsWith(`Shot ${index + 1}`)) {
+          return {
+            ...q,
+            shot: `Shot ${index + 1} — ${updatedShot.desc.slice(0, 24)}…`
+          };
+        }
+        return q;
+      });
+
       return {
         ...prev,
-        [videoId]: { ...target, shots }
+        [videoId]: { ...target, shots, prompts: updatedPrompts, queue: updatedQueue }
       };
     });
   };

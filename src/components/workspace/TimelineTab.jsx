@@ -16,10 +16,15 @@ export default function TimelineTab({ video }) {
 
   return (
     <div>
-      <h3 style={{ fontSize: '16px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <Sparkles className="w-4 h-4 text-purple-400" />
-        Active Generation Queue
-      </h3>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+        <h3 style={{ fontSize: '16px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Sparkles className="w-4 h-4 text-purple-400" />
+          Active Generation Queue
+        </h3>
+        <span style={{ fontSize: '11.5px', color: 'var(--toon-cyan)', fontWeight: 700 }}>
+          ⚡ Synced: Changes in Script or Storyboard update here automatically
+        </span>
+      </div>
 
       {queue.length === 0 ? (
         <div className="empty-state" style={{ marginBottom: '28px' }}>
