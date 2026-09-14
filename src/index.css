@@ -965,3 +965,475 @@ td {
   justify-content: center;
   gap: 12px;
 }
+
+/* ====================================================
+   Interactive Flying Bird Mascot Styles
+   ==================================================== */
+.flying-bird-container {
+  position: fixed;
+  z-index: 150;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  user-select: none;
+}
+
+.flying-bird-container.mode-perched {
+  bottom: 24px;
+  right: 28px;
+  animation: birdHover 4s ease-in-out infinite;
+}
+
+.flying-bird-container.mode-flying {
+  animation: birdFlyAcross 24s ease-in-out infinite alternate, birdHover 3s ease-in-out infinite;
+}
+
+@keyframes birdHover {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(3deg);
+  }
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+}
+
+@keyframes birdFlyAcross {
+  0% {
+    bottom: 24px;
+    right: 30px;
+  }
+  25% {
+    bottom: 45vh;
+    right: 25vw;
+  }
+  50% {
+    bottom: 75vh;
+    right: 55vw;
+  }
+  75% {
+    bottom: 30vh;
+    right: 75vw;
+  }
+  100% {
+    bottom: 60vh;
+    right: 40vw;
+  }
+}
+
+.bird-avatar-wrapper {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  cursor: pointer;
+  transition: transform 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bird-avatar-wrapper:hover {
+  transform: scale(1.12);
+}
+
+.bird-halo-glow {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.35) 0%, rgba(109, 40, 217, 0) 70%);
+  animation: pulseGlow 2.5s infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes pulseGlow {
+  0% { transform: scale(0.95); opacity: 0.6; }
+  100% { transform: scale(1.15); opacity: 1; }
+}
+
+.bird-mascot-img {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #ffffff;
+  box-shadow: 0 8px 24px rgba(109, 40, 217, 0.3), 0 2px 8px rgba(0, 0, 0, 0.12);
+  background: #7c3aed;
+}
+
+.bird-floating-sparkle {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  filter: drop-shadow(0 0 4px #ffd859);
+  animation: sparkleTwinkle 2s infinite ease-in-out;
+}
+
+@keyframes sparkleTwinkle {
+  0%, 100% { transform: scale(0.8) rotate(0deg); opacity: 0.7; }
+  50% { transform: scale(1.25) rotate(20deg); opacity: 1; }
+}
+
+.bird-do-flip {
+  animation: birdFlip 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes birdFlip {
+  0% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.3) rotate(180deg); }
+  100% { transform: scale(1) rotate(360deg); }
+}
+
+.bird-speech-bubble {
+  position: relative;
+  background: #ffffff;
+  color: var(--text-bright);
+  border: 2px solid var(--grape-light);
+  border-radius: var(--radius-lg);
+  padding: 10px 14px;
+  max-width: 220px;
+  margin-bottom: 12px;
+  box-shadow: 0 10px 25px rgba(109, 40, 217, 0.18);
+  animation: bubblePop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.bird-speech-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 9px 8px 0;
+  border-style: solid;
+  border-color: #ffffff transparent;
+  display: block;
+  width: 0;
+}
+
+.bird-speech-bubble::before {
+  content: '';
+  position: absolute;
+  bottom: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 11px 10px 0;
+  border-style: solid;
+  border-color: var(--grape-light) transparent;
+  display: block;
+  width: 0;
+}
+
+@keyframes bubblePop {
+  0% { transform: scale(0.85); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.bird-speech-text {
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--text-bright);
+  margin-right: 14px;
+}
+
+.bird-bubble-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 50%;
+  display: flex;
+}
+.bird-bubble-close:hover {
+  color: var(--bad);
+  background: var(--bad-bg);
+}
+
+.bird-speech-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+
+.bird-action-btn {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--grape);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: var(--transition);
+}
+.bird-action-btn:hover {
+  background: var(--grape);
+  color: #ffffff;
+}
+
+.bird-controls {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 3px 8px;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(4px);
+}
+
+.bird-mini-pill {
+  background: none;
+  border: none;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--grape);
+  cursor: pointer;
+  padding: 2px 4px;
+}
+.bird-mini-pill:hover {
+  color: var(--grape-hover);
+  text-decoration: underline;
+}
+
+.bird-minimized-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 2px solid var(--grape);
+  border-radius: 30px;
+  padding: 6px 12px;
+  box-shadow: 0 6px 20px rgba(109, 40, 217, 0.25);
+  cursor: pointer;
+  animation: birdHover 4s ease-in-out infinite;
+  transition: transform 0.2s;
+}
+.bird-minimized-btn:hover {
+  transform: scale(1.06);
+}
+
+/* ====================================================
+   Image Upload & Frame Reference Box Styles
+   ==================================================== */
+.img-upload-box-wrapper {
+  width: 100%;
+}
+
+.img-preview-card {
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+}
+
+.img-frame-container {
+  position: relative;
+  width: 100%;
+  height: 140px;
+  background: #ede7f6;
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.img-frame-content {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.img-frame-container:hover .img-frame-content {
+  transform: scale(1.05);
+}
+
+.img-frame-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 50%, rgba(21, 13, 38, 0.65) 100%);
+  opacity: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 8px;
+  transition: opacity 0.2s ease;
+}
+
+.img-frame-container:hover .img-frame-overlay {
+  opacity: 1;
+}
+
+.img-overlay-action {
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.img-card-actions {
+  display: flex;
+  gap: 6px;
+  padding: 8px 10px;
+  background: #faf8fe;
+  border-top: 1px solid var(--line);
+  justify-content: space-between;
+  align-items: center;
+}
+
+.img-empty-dropzone {
+  border: 1.5px dashed var(--line-light);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  background: #fbf9fe;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.img-empty-dropzone:hover {
+  border-color: var(--grape-light);
+  background: #f7f3fd;
+}
+
+.img-empty-icon-wrap {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #ede7f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.img-empty-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.img-empty-buttons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 2px;
+}
+
+/* Lightbox Modal */
+.lightbox-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(15, 8, 30, 0.88);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.lightbox-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.lightbox-image {
+  max-width: 100%;
+  max-height: 80vh;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  object-fit: contain;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.lightbox-close {
+  position: absolute;
+  top: -40px;
+  right: 0;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.lightbox-caption {
+  margin-top: 14px;
+  color: #ffffff;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Enhanced Shot Card Layout with Visual Frame alongside Paragraph */
+.shot-main-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.shot-body-columns {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.shot-frame-col {
+  flex: 0 0 240px;
+  max-width: 280px;
+  width: 100%;
+}
+
+.shot-paras-col {
+  flex: 1 1 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 260px;
+}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Modal from '../common/Modal';
+import ImageUploadBox from '../common/ImageUploadBox';
 import { useVideo } from '../../context/VideoContext';
 import { PlusCircle, Sparkles } from 'lucide-react';
 
@@ -19,6 +20,7 @@ export default function NewVideoModal({ isOpen, onClose }) {
   const [logline, setLogline] = useState('');
   const [createdBy, setCreatedBy] = useState('Aria K.');
   const [cover, setCover] = useState(COVER_PRESETS[0]);
+  const [coverImage, setCoverImage] = useState(null);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -29,12 +31,14 @@ export default function NewVideoModal({ isOpen, onClose }) {
       epLabel: epLabel.trim() || 'Episode',
       logline: logline.trim(),
       createdBy: createdBy.trim() || 'You',
-      cover: cover.trim()
+      cover: coverImage || cover.trim(),
+      coverImage: coverImage || null
     });
 
     onClose();
     setTitle('');
     setLogline('');
+    setCoverImage(null);
   };
 
   return (
@@ -112,6 +116,17 @@ export default function NewVideoModal({ isOpen, onClose }) {
                 </button>
               ))}
             </div>
+          </div>
+
+          <div className="field">
+            <label>Cover Thumbnail Image File (Optional)</label>
+            <ImageUploadBox
+              value={coverImage}
+              onChange={setCoverImage}
+              label="Project Cover Artwork"
+              placeholder="Upload thumbnail or poster art"
+              compact={true}
+            />
           </div>
         </div>
 

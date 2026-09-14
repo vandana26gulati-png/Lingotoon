@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useVideo } from '../../context/VideoContext';
 import { CAMERA_OPTIONS, REJECTION_REASONS } from '../../data/initialData';
 import Modal from '../common/Modal';
+import ImageUploadBox from '../common/ImageUploadBox';
 import {
   Plus,
   ArrowUp,
@@ -33,9 +34,6 @@ export default function StoryboardTab({ video }) {
   const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
   const [versionNotes, setVersionNotes] = useState('');
 
-  const [picModalIndex, setPicModalIndex] = useState(null);
-  const [picInput, setPicInput] = useState('');
-
   const handleOpenReject = (idx) => {
     setActiveRejectIndex(activeRejectIndex === idx ? null : idx);
     setRejectReason(video.shots[idx]?.recReason || REJECTION_REASONS[0]);
@@ -45,19 +43,6 @@ export default function StoryboardTab({ video }) {
   const handleConfirmReject = (idx) => {
     setShotStatus(video.id, idx, 'rejected', rejectReason, rejectNotes);
     setActiveRejectIndex(null);
-  };
-
-  const handleOpenPic = (idx) => {
-    setPicModalIndex(idx);
-    setPicInput(video.shots[idx]?.pic || '');
-  };
-
-  const handleSavePic = (e) => {
-    e.preventDefault();
-    if (picModalIndex !== null) {
-      updateShot(video.id, picModalIndex, { pic: picInput.trim() || null });
-      setPicModalIndex(null);
-    }
   };
 
   const handleSaveVersion = (e) => {
@@ -71,8 +56,7 @@ export default function StoryboardTab({ video }) {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
         <p style={{ color: 'var(--muted)', fontSize: '13px', margin: 0, maxWidth: '65ch' }}>
-          This is the current working version. Edit shots directly, attach visual frame references, then approve or flag for revision.
-          Rejecting asks for a reason so the regenerated AI prompt gets automatically improved.
+          This is the current working version. Upload image frames alongside each paragraph, edit camera angles, and approve or request revision.
         </p>
         <div style={{ display: 'flex', gap: '10px' }}>
           <button className="btn btn-ghost btn-sm" onClick={() => addShot(video.id)}>
@@ -108,45 +92,45 @@ export default function StoryboardTab({ video }) {
             <div key={shot.id || idx} className="shot-card">
               <div className="shot-num">{idx + 1}</div>
 
-              <div>
-                <span className={`status-pill ${statusClass}`}>{statusText}</span>
-
-                <div className="shot-pic-row">
-                  <div className={`shot-pic ${shot.pic ? '' : 'empty'}`}>
-                    {shot.pic ? shot.pic : 'No frame ref'}
-                  </div>
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    style={{ fontSize: '11px', padding: '4px 8px' }}
-                    onClick={() => handleOpenPic(idx)}
-                  >
-                    <ImageIcon className="w-3 h-3" />
-                    {shot.pic ? 'Change reference' : '+ Add reference'}
-                  </button>
+              <div className="shot-main-content">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span className={`status-pill ${statusClass}`}>{statusText}</span>
+                  <span style={{ fontSize: '11px', color: 'var(--toon-cyan)', fontWeight: 700 }}>
+                    ⚡ Synced with Script & Timeline
+                  </span>
                 </div>
 
-                <div className="field-row">
-                  <div className="field" style={{ flex: 1, minWidth: '240px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                      <label>Visual Action</label>
-                      <span style={{ fontSize: '10px', color: 'var(--toon-cyan)', fontWeight: 700 }}>⚡ Synced with Script & Timeline</span>
+                {/* Visual Frame Image right alongside the paragraph description */}
+                <div className="shot-body-columns">
+                  <div className="shot-frame-col">
+                    <ImageUploadBox
+                      value={shot.pic}
+                      onChange={(newPic) => updateShot(video.id, idx, { pic: newPic })}
+                      label={`Shot ${idx + 1} Frame Art`}
+                      placeholder="Attach image to this paragraph"
+                    />
+                  </div>
+
+                  <div className="shot-paras-col">
+                    <div className="field">
+                      <label style={{ fontWeight: 700 }}>Action & Visual Paragraph</label>
+                      <textarea
+                        rows={3}
+                        value={shot.desc}
+                        placeholder="Describe the action and key visual details happening in this shot..."
+                        onChange={(e) => updateShot(video.id, idx, { desc: e.target.value })}
+                      />
                     </div>
-                    <textarea
-                      value={shot.desc}
-                      onChange={(e) => updateShot(video.id, idx, { desc: e.target.value })}
-                    />
-                  </div>
-                </div>
 
-                <div className="field-row">
-                  <div className="field" style={{ flex: 1, minWidth: '240px' }}>
-                    <label>Dialogue / Voiceover Line (Synced with Script)</label>
-                    <input
-                      type="text"
-                      value={shot.dialogue || ''}
-                      placeholder='e.g. "Look, the lantern is moving!"'
-                      onChange={(e) => updateShot(video.id, idx, { dialogue: e.target.value })}
-                    />
+                    <div className="field">
+                      <label style={{ fontWeight: 700 }}>Dialogue / Voiceover Line</label>
+                      <input
+                        type="text"
+                        value={shot.dialogue || ''}
+                        placeholder='e.g. "Look, the lantern is moving!"'
+                        onChange={(e) => updateShot(video.id, idx, { dialogue: e.target.value })}
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -289,51 +273,6 @@ export default function StoryboardTab({ video }) {
           </button>
         </div>
       )}
-
-      {/* Picture Modal */}
-      <Modal
-        isOpen={picModalIndex !== null}
-        onClose={() => setPicModalIndex(null)}
-        title={`Shot ${picModalIndex !== null ? picModalIndex + 1 : ''} Reference Picture`}
-      >
-        <form onSubmit={handleSavePic}>
-          <div className="modal-body">
-            <div className="field">
-              <label>Frame Reference Label / URL</label>
-              <input
-                type="text"
-                value={picInput}
-                placeholder="e.g. Frame ref — close-up face or https://..."
-                onChange={(e) => setPicInput(e.target.value)}
-              />
-            </div>
-            <div style={{ fontSize: '11.5px', color: 'var(--muted)' }}>
-              Quick presets:
-              <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
-                {['Close-up character sheet', 'Establishing landscape wide', 'Action motion keyframe', 'Color palette lighting'].map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    className="link-btn"
-                    style={{ fontSize: '11px', background: 'var(--panel-2)', padding: '2px 8px', borderRadius: '4px' }}
-                    onClick={() => setPicInput(p)}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="modal-foot">
-            <button type="button" className="btn btn-ghost" onClick={() => setPicModalIndex(null)}>
-              Cancel
-            </button>
-            <button type="submit" className="btn btn-primary">
-              Save Reference
-            </button>
-          </div>
-        </form>
-      </Modal>
 
       {/* Save Version Modal */}
       <Modal

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useVideo } from '../../context/VideoContext';
 import Modal from '../common/Modal';
+import ImageUploadBox from '../common/ImageUploadBox';
 import { Lock, Unlock, Plus, Trash2, User, Sparkles } from 'lucide-react';
 
 export default function CharactersTab({ video }) {
@@ -11,6 +12,7 @@ export default function CharactersTab({ video }) {
   const [desc, setDesc] = useState('');
   const [tag, setTag] = useState('Locked');
   const [thumb, setThumb] = useState('');
+  const [image, setImage] = useState(null);
 
   const characters = video.characters || [];
 
@@ -22,13 +24,15 @@ export default function CharactersTab({ video }) {
       name: name.trim(),
       desc: desc.trim() || 'Character reference details',
       tag,
-      thumb: thumb.trim() || `${name.trim()} reference sheet`
+      thumb: thumb.trim() || `${name.trim()} reference sheet`,
+      image: image || null
     });
 
     setIsModalOpen(false);
     setName('');
     setDesc('');
     setThumb('');
+    setImage(null);
   };
 
   return (
@@ -36,7 +40,7 @@ export default function CharactersTab({ video }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
         <p style={{ color: 'var(--muted)', fontSize: '13px', margin: 0, maxWidth: '65ch' }}>
           Lock a character's look before it is rendered in any AI video shot.
-          Locked characters carry their visual reference tags and outfit traits into generated prompts automatically.
+          Upload character turnaround art, reference sheets, or facial portraits to maintain visual consistency.
         </p>
         <button className="btn btn-primary btn-sm" onClick={() => setIsModalOpen(true)}>
           <Plus className="w-3.5 h-3.5" />
@@ -50,9 +54,19 @@ export default function CharactersTab({ video }) {
 
           return (
             <div key={char.id} className="card">
-              <div className="thumb">
-                <Sparkles className="w-5 h-5 text-purple-400 mb-1" />
-                <span style={{ fontWeight: 600 }}>{char.thumb}</span>
+              <div className="thumb" style={{ overflow: 'hidden', position: 'relative' }}>
+                {char.image ? (
+                  <img
+                    src={char.image}
+                    alt={char.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5 text-purple-400 mb-1" />
+                    <span style={{ fontWeight: 600 }}>{char.thumb}</span>
+                  </>
+                )}
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
@@ -172,6 +186,17 @@ export default function CharactersTab({ video }) {
                 placeholder="e.g. Mira — 3 views (front, 3/4, profile)"
                 value={thumb}
                 onChange={(e) => setThumb(e.target.value)}
+              />
+            </div>
+
+            <div className="field">
+              <label>Character Reference Art / Model Sheet File</label>
+              <ImageUploadBox
+                value={image}
+                onChange={setImage}
+                label="Character Model Sheet / Portrait"
+                placeholder="Upload character turnaround or portrait image"
+                compact={true}
               />
             </div>
           </div>

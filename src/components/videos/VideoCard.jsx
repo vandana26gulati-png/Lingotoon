@@ -10,11 +10,32 @@ export default function VideoCard({ video }) {
   const versionCount = video.versions?.length || 0;
   const shotCount = video.shots?.length || 0;
 
+  const coverSrc = video.coverImage || video.cover;
+  const isImage = Boolean(
+    coverSrc &&
+    typeof coverSrc === 'string' &&
+    (coverSrc.startsWith('data:image/') ||
+     coverSrc.startsWith('http://') ||
+     coverSrc.startsWith('https://') ||
+     coverSrc.startsWith('/') ||
+     /\.(png|jpg|jpeg|webp|gif|svg)$/i.test(coverSrc))
+  );
+
   return (
     <div className="video-card" onClick={() => openVideo(video.id)}>
-      <div className="card-thumb">
-        <Sparkles className="w-5 h-5 text-purple-400 mb-1" style={{ opacity: 0.8 }} />
-        <span style={{ fontWeight: 600, maxWidth: '90%' }}>{video.cover}</span>
+      <div className="card-thumb" style={{ overflow: 'hidden', position: 'relative' }}>
+        {isImage ? (
+          <img
+            src={coverSrc}
+            alt={video.title}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+        ) : (
+          <>
+            <Sparkles className="w-5 h-5 text-purple-400 mb-1" style={{ opacity: 0.8 }} />
+            <span style={{ fontWeight: 600, maxWidth: '90%' }}>{video.cover}</span>
+          </>
+        )}
       </div>
 
       <div className="ep-label">{video.epLabel}</div>

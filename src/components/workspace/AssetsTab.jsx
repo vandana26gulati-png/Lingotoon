@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useVideo } from '../../context/VideoContext';
 import Modal from '../common/Modal';
+import ImageUploadBox from '../common/ImageUploadBox';
 import { FolderPlus, Plus, Search, Trash2, Sparkles } from 'lucide-react';
 
 export default function AssetsTab({ video }) {
@@ -14,6 +15,7 @@ export default function AssetsTab({ video }) {
   const [desc, setDesc] = useState('');
   const [tag, setTag] = useState('Theme');
   const [thumb, setThumb] = useState('');
+  const [image, setImage] = useState(null);
 
   const assets = video.assets || [];
 
@@ -34,13 +36,15 @@ export default function AssetsTab({ video }) {
       name: name.trim(),
       desc: desc.trim() || 'Visual asset for episode production',
       tag,
-      thumb: thumb.trim() || `${name.trim()} mood visual`
+      thumb: thumb.trim() || `${name.trim()} mood visual`,
+      image: image || null
     });
 
     setIsModalOpen(false);
     setName('');
     setDesc('');
     setThumb('');
+    setImage(null);
   };
 
   return (
@@ -88,9 +92,19 @@ export default function AssetsTab({ video }) {
       <div className="grid">
         {filteredAssets.map((asset) => (
           <div key={asset.id} className="card">
-            <div className="thumb">
-              <Sparkles className="w-5 h-5 text-purple-400 mb-1" />
-              <span style={{ fontWeight: 600 }}>{asset.thumb}</span>
+            <div className="thumb" style={{ overflow: 'hidden', position: 'relative' }}>
+              {asset.image ? (
+                <img
+                  src={asset.image}
+                  alt={asset.name}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ) : (
+                <>
+                  <Sparkles className="w-5 h-5 text-purple-400 mb-1" />
+                  <span style={{ fontWeight: 600 }}>{asset.thumb}</span>
+                </>
+              )}
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
@@ -191,6 +205,17 @@ export default function AssetsTab({ video }) {
                 placeholder="e.g. Amber lantern lighting swatch"
                 value={thumb}
                 onChange={(e) => setThumb(e.target.value)}
+              />
+            </div>
+
+            <div className="field">
+              <label>Asset Image / Concept Art File</label>
+              <ImageUploadBox
+                value={image}
+                onChange={setImage}
+                label="Asset Moodboard / Concept File"
+                placeholder="Upload background, prop, or color reference"
+                compact={true}
               />
             </div>
           </div>

@@ -10,11 +10,29 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="brand-wrapper" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', paddingBottom: '16px' }}>
-        <img
-          src="/lingotoon-logo.png"
-          alt="Lingotoon"
-          style={{ width: '150px', height: 'auto', borderRadius: '10px', marginBottom: '8px', filter: 'drop-shadow(0 4px 12px rgba(109, 40, 217, 0.15))' }}
-        />
+        <div style={{ position: 'relative', display: 'inline-block' }}>
+          <img
+            src="/lingotoon-logo.png"
+            alt="Lingotoon"
+            style={{ width: '150px', height: 'auto', borderRadius: '10px', marginBottom: '8px', filter: 'drop-shadow(0 4px 12px rgba(109, 40, 217, 0.15))' }}
+          />
+          <img
+            src="/bird-mascot.png"
+            alt="Mascot"
+            title="Lingotoon Flying Mascot"
+            style={{
+              position: 'absolute',
+              bottom: '6px',
+              right: '-8px',
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              border: '2.5px solid #ffd859',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.35)',
+              objectFit: 'cover'
+            }}
+          />
+        </div>
         <div className="team-badge" style={{ justifyContent: 'center' }}>
           <span className="team-badge-dot"></span>
           Internal · Video Production

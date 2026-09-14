@@ -5,6 +5,7 @@ import ToastContainer from './components/layout/Toast';
 import VideoGrid from './components/videos/VideoGrid';
 import VideoWorkspace from './components/workspace/VideoWorkspace';
 import CreditsDashboard from './components/credits/CreditsDashboard';
+import FlyingBird from './components/common/FlyingBird';
 
 export default function App() {
   const { topView } = useVideo();
@@ -19,6 +20,7 @@ export default function App() {
         {topView === 'credits' && <CreditsDashboard />}
       </main>
 
+      <FlyingBird />
       <ToastContainer />
     </div>
   );

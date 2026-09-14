@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Modal from '../common/Modal';
+import ImageUploadBox from '../common/ImageUploadBox';
 import { useVideo } from '../../context/VideoContext';
 import { Trash2, Save } from 'lucide-react';
 
@@ -90,11 +91,13 @@ export default function EditVideoModal({ isOpen, onClose, video }) {
           </div>
 
           <div className="field">
-            <label>Cover Art Reference</label>
-            <input
-              type="text"
+            <label>Cover Art / Thumbnail Image</label>
+            <ImageUploadBox
               value={cover}
-              onChange={(e) => setCover(e.target.value)}
+              onChange={setCover}
+              label="Project Thumbnail Artwork"
+              placeholder="Upload or replace project thumbnail"
+              compact={true}
             />
           </div>
         </div>
