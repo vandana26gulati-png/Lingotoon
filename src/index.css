@@ -98,19 +98,19 @@ h1, h2, h3, h4, .font-serif {
     #f5f2fa;
 }
 
-/* Clean, soothing white & purple sidebar */
+/* LHS (Sidebar) - Classic rich dark purple from earlier */
 .sidebar {
   width: 240px;
   flex-shrink: 0;
-  background: #ffffff;
-  border-right: 1.5px solid var(--line);
+  background: linear-gradient(180deg, #1f1433 0%, #150c26 100%);
+  border-right: 1.5px solid #382458;
   padding: 24px 16px;
   position: sticky;
   top: 0;
   height: 100vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 2px 0 12px rgba(109, 40, 217, 0.02);
+  box-shadow: 4px 0 20px rgba(21, 12, 38, 0.25);
   z-index: 20;
 }
 
@@ -120,15 +120,15 @@ h1, h2, h3, h4, .font-serif {
   align-items: center;
   text-align: center;
   padding: 0 6px 18px 6px;
-  border-bottom: 1.5px solid var(--line);
+  border-bottom: 1px solid #382458;
   margin-bottom: 18px;
 }
 
 .team-badge {
   font-size: 11px;
   font-weight: 600;
-  color: var(--grape);
-  background: #ede7f6;
+  color: #d8ccfb;
+  background: rgba(124, 58, 237, 0.25);
   padding: 4px 10px;
   border-radius: var(--radius-full);
   margin-top: 8px;
@@ -141,6 +141,7 @@ h1, h2, h3, h4, .font-serif {
   height: 6px;
   background: var(--good);
   border-radius: 50%;
+  box-shadow: 0 0 6px var(--good);
 }
 
 .nav-section {
@@ -156,7 +157,7 @@ h1, h2, h3, h4, .font-serif {
   gap: 10px;
   padding: 10px 14px;
   border-radius: var(--radius-md);
-  color: var(--text-muted);
+  color: #a79bbd;
   font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
@@ -164,14 +165,15 @@ h1, h2, h3, h4, .font-serif {
   border: 1px solid transparent;
 }
 .nav-item:hover {
-  background: #ede7f6;
-  color: var(--grape);
+  background: rgba(255, 255, 255, 0.07);
+  color: #ffffff;
 }
 .nav-item.active {
-  background: #ede5f8;
-  color: var(--grape);
+  background: #331f54;
+  color: #ffd859;
   font-weight: 700;
-  box-shadow: var(--shadow-sm);
+  border-color: #4f2f82;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 .nav-dot {
   width: 6px;
@@ -180,15 +182,27 @@ h1, h2, h3, h4, .font-serif {
   background: currentColor;
 }
 .nav-item.active .nav-dot {
-  background: var(--grape);
+  background: #ffd859;
+  box-shadow: 0 0 6px #ffd859;
+}
+
+.sidebar .btn-ghost {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #c4b5fd !important;
+  border: 1px solid #382458 !important;
+}
+.sidebar .btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+  border-color: #6d28d9 !important;
 }
 
 .sidebar-footer {
   margin-top: auto;
   padding-top: 16px;
-  border-top: 1.5px solid var(--line);
+  border-top: 1px solid #382458;
   font-size: 11px;
-  color: var(--text-dim);
+  color: #8c7fa8;
   line-height: 1.5;
 }
 
