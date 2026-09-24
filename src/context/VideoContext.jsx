@@ -1,5 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { INITIAL_VIDEOS, TOOL_OPTIONS } from '../data/initialData';
+import {
+  saveDatabaseToOwnerDrive,
+  fetchDatabaseFromOwnerDrive,
+  isOwnerDriveConfigured
+} from '../utils/googleDrive';
 
 const VideoContext = createContext();
 
@@ -26,6 +31,34 @@ export function VideoProvider({ children }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [toasts, setToasts] = useState([]);
 
+  // Collaborator Profile State
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem('lingotoon_user_profile');
+      if (stored) return JSON.parse(stored);
+    } catch (e) {}
+    return {
+      id: 'usr_' + Math.random().toString(36).substr(2, 6),
+      name: 'Director (You)',
+      role: 'Director',
+      color: '#6d28d9'
+    };
+  });
+
+  const updateCurrentUser = (updates) => {
+    setCurrentUser(prev => {
+      const updated = { ...prev, ...updates };
+      localStorage.setItem('lingotoon_user_profile', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  // Cloud Sync state
+  const [cloudStatus, setCloudStatus] = useState(() => {
+    return isOwnerDriveConfigured() ? 'syncing' : 'local_only';
+  });
+  const [lastSyncedTime, setLastSyncedTime] = useState(null);
+
   // Auto-save to localStorage whenever videos change
   useEffect(() => {
     try {
@@ -34,6 +67,132 @@ export function VideoProvider({ children }) {
       console.error('Failed to save to localStorage', e);
     }
   }, [videos]);
+
+  // Initial Boot: Non-destructive Cloud Load & Auto-Migration
+  useEffect(() => {
+    let isMounted = true;
+
+    async function initCloudSync() {
+      if (!isOwnerDriveConfigured()) {
+        setCloudStatus('local_only');
+        return;
+      }
+
+      try {
+        setCloudStatus('syncing');
+        const cloudData = await fetchDatabaseFromOwnerDrive();
+
+        if (cloudData && typeof cloudData === 'object' && Object.keys(cloudData).length > 0) {
+          // Cloud database exists! Merge non-destructively with local data so no changes are lost:
+          setVideos(prev => {
+            const merged = { ...prev };
+            for (const [vidId, cloudVid] of Object.entries(cloudData)) {
+              if (!merged[vidId]) {
+                merged[vidId] = cloudVid;
+              } else {
+                const localShots = merged[vidId].shots || [];
+                const cloudShots = cloudVid.shots || [];
+                const maxLen = Math.max(localShots.length, cloudShots.length);
+                const mergedShots = [];
+
+                for (let i = 0; i < maxLen; i++) {
+                  const sLocal = localShots[i] || {};
+                  const sCloud = cloudShots[i] || {};
+                  const localComments = sLocal.comments || [];
+                  const cloudComments = sCloud.comments || [];
+                  const commentIds = new Set(localComments.map(c => c.id));
+                  const combinedComments = [...localComments];
+
+                  for (const c of cloudComments) {
+                    if (!commentIds.has(c.id)) {
+                      combinedComments.push(c);
+                    }
+                  }
+
+                  mergedShots.push({
+                    ...sCloud,
+                    ...sLocal,
+                    comments: combinedComments
+                  });
+                }
+
+                merged[vidId] = {
+                  ...cloudVid,
+                  ...merged[vidId],
+                  shots: mergedShots
+                };
+              }
+            }
+
+            // Immediately save merged state back to Google Drive so Drive has all old + cloud changes!
+            saveDatabaseToOwnerDrive(merged).catch(err => console.warn('Sync back err:', err));
+            return merged;
+          });
+
+          if (isMounted) {
+            setCloudStatus('synced');
+            setLastSyncedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+          }
+        } else {
+          // Cloud DB was empty or not found: Immediately upload the user's existing work!
+          // This guarantees that OLD CHANGES ARE AUTOMATICALLY SAVED TO GOOGLE DRIVE!
+          const currentLocal = videos;
+          if (currentLocal && Object.keys(currentLocal).length > 0) {
+            await saveDatabaseToOwnerDrive(currentLocal);
+            if (isMounted) {
+              setCloudStatus('synced');
+              setLastSyncedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Initial cloud sync notice:', err.message);
+        if (isMounted) {
+          setCloudStatus('error');
+        }
+      }
+    }
+
+    initCloudSync();
+
+    return () => { isMounted = false; };
+  }, []);
+
+  // Debounced Real-Time Auto-Save to Google Drive whenever changes occur
+  useEffect(() => {
+    if (!isOwnerDriveConfigured()) return;
+
+    setCloudStatus('saving');
+    const timer = setTimeout(async () => {
+      try {
+        await saveDatabaseToOwnerDrive(videos);
+        setCloudStatus('synced');
+        setLastSyncedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      } catch (err) {
+        console.warn('Auto-save to Google Drive notice:', err.message);
+        setCloudStatus('error');
+      }
+    }, 1600);
+
+    return () => clearTimeout(timer);
+  }, [videos]);
+
+  const forceCloudSync = async () => {
+    if (!isOwnerDriveConfigured()) {
+      addToast('Please link Google Drive in Cloud Hub first.', 'info');
+      return;
+    }
+    setCloudStatus('syncing');
+    try {
+      await saveDatabaseToOwnerDrive(videos);
+      setCloudStatus('synced');
+      setLastSyncedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      addToast('Studio database synced with Google Drive!', 'success');
+    } catch (err) {
+      setCloudStatus('error');
+      addToast(`Sync error: ${err.message}`, 'error');
+    }
+  };
 
   const addToast = (text, type = 'info') => {
     const id = Date.now() + Math.random().toString(36).substr(2, 4);
@@ -315,6 +474,68 @@ export function VideoProvider({ children }) {
       };
     });
     addToast('Shot removed.', 'info');
+  };
+
+  const addShotComment = (videoId, shotIndex, { text, author, authorRole, avatarColor }) => {
+    setVideos(prev => {
+      const target = prev[videoId];
+      if (!target) return prev;
+      const shots = [...target.shots];
+      const shot = { ...shots[shotIndex] };
+      const existingComments = shot.comments || [];
+      const newComment = {
+        id: 'cmt_' + Date.now() + Math.random().toString(36).substr(2, 4),
+        text: text.trim(),
+        author: author || currentUser.name,
+        authorRole: authorRole || currentUser.role,
+        avatarColor: avatarColor || currentUser.color,
+        createdAt: new Date().toISOString(),
+        resolved: false
+      };
+      shot.comments = [...existingComments, newComment];
+      shots[shotIndex] = shot;
+      return {
+        ...prev,
+        [videoId]: { ...target, shots }
+      };
+    });
+    addToast('Comment added!', 'success');
+  };
+
+  const deleteShotComment = (videoId, shotIndex, commentId) => {
+    setVideos(prev => {
+      const target = prev[videoId];
+      if (!target) return prev;
+      const shots = [...target.shots];
+      const shot = { ...shots[shotIndex] };
+      shot.comments = (shot.comments || []).filter(c => c.id !== commentId);
+      shots[shotIndex] = shot;
+      return {
+        ...prev,
+        [videoId]: { ...target, shots }
+      };
+    });
+    addToast('Comment removed.', 'info');
+  };
+
+  const toggleResolveShotComment = (videoId, shotIndex, commentId) => {
+    setVideos(prev => {
+      const target = prev[videoId];
+      if (!target) return prev;
+      const shots = [...target.shots];
+      const shot = { ...shots[shotIndex] };
+      shot.comments = (shot.comments || []).map(c => {
+        if (c.id === commentId) {
+          return { ...c, resolved: !c.resolved };
+        }
+        return c;
+      });
+      shots[shotIndex] = shot;
+      return {
+        ...prev,
+        [videoId]: { ...target, shots }
+      };
+    });
   };
 
   const saveNewVersion = (videoId, notes = '', frontImage = null) => {
@@ -688,7 +909,15 @@ export function VideoProvider({ children }) {
         addAsset,
         deleteAsset,
         resetToDemoData,
-        exportDataAsJSON
+        exportDataAsJSON,
+        cloudStatus,
+        lastSyncedTime,
+        forceCloudSync,
+        currentUser,
+        updateCurrentUser,
+        addShotComment,
+        deleteShotComment,
+        toggleResolveShotComment
       }}
     >
       {children}

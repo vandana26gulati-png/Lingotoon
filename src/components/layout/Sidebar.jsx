@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useVideo } from '../../context/VideoContext';
 import GoogleDriveModal from '../common/GoogleDriveModal';
+import CloudSyncStatus from '../common/CloudSyncStatus';
+import CollaboratorPresence from '../common/CollaboratorPresence';
 import { Film, Coins, Sparkles, RotateCcw, Download, Layers, HardDrive } from 'lucide-react';
 
 export default function Sidebar() {
@@ -35,9 +37,14 @@ export default function Sidebar() {
             }}
           />
         </div>
-        <div className="team-badge" style={{ justifyContent: 'center' }}>
+        <div className="team-badge" style={{ justifyContent: 'center', marginBottom: '10px' }}>
           <span className="team-badge-dot"></span>
           Internal · Video Production
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center', width: '100%' }}>
+          <CollaboratorPresence />
+          <CloudSyncStatus />
         </div>
       </div>
 

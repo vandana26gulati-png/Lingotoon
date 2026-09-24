@@ -16,6 +16,7 @@ import {
   Table as TableIcon
 } from 'lucide-react';
 import AVProductionTable from './AVProductionTable';
+import ShotCommentsModal from '../common/ShotCommentsModal';
 
 export default function ScriptTab({ video }) {
   const {
@@ -26,7 +27,9 @@ export default function ScriptTab({ video }) {
     addToast
   } = useVideo();
 
-  const [viewMode, setViewMode] = useState('scenes'); // 'scenes' | 'screenplay'
+  const [viewMode, setViewMode] = useState('scenes'); // 'scenes' | 'screenplay' | 'table'
+  const [activeCommentShot, setActiveCommentShot] = useState(null);
+  const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const shots = video.shots || [];
 
   // Generate continuous screenplay text from current shots
@@ -148,6 +151,20 @@ export default function ScriptTab({ video }) {
                   </div>
 
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      style={{ fontSize: '11px', padding: '3px 8px' }}
+                      onClick={() => {
+                        setActiveCommentShot({ shot, idx });
+                        setIsCommentModalOpen(true);
+                      }}
+                      title={`Comments & Director Notes (${shot.comments?.length || 0})`}
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 mr-1 text-purple-600" />
+                      Comments {shot.comments?.length > 0 && `(${shot.comments.length})`}
+                    </button>
+
                     <button
                       className="link-btn"
                       style={{ fontSize: '12px' }}
@@ -283,6 +300,20 @@ export default function ScriptTab({ video }) {
             {generateScreenplayText() || 'No script scenes added yet. Click "Scene Cards" or "Add Next Scene" to begin writing!'}
           </pre>
         </div>
+      )}
+
+      {/* Shot Comments Modal */}
+      {activeCommentShot && (
+        <ShotCommentsModal
+          isOpen={isCommentModalOpen}
+          onClose={() => {
+            setIsCommentModalOpen(false);
+            setActiveCommentShot(null);
+          }}
+          videoId={video.id}
+          shotIndex={activeCommentShot.idx}
+          shot={video.shots[activeCommentShot.idx]}
+        />
       )}
     </div>
   );

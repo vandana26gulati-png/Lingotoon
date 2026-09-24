@@ -3,6 +3,8 @@ import { useVideo } from '../../context/VideoContext';
 import StatusBadge from '../common/StatusBadge';
 import EditVideoModal from './EditVideoModal';
 import GoogleDriveModal from '../common/GoogleDriveModal';
+import CloudSyncStatus from '../common/CloudSyncStatus';
+import CollaboratorPresence from '../common/CollaboratorPresence';
 import { ArrowLeft, Edit3, Sparkles, HardDrive, ExternalLink } from 'lucide-react';
 import { formatDriveFolderUrl, isGoogleDriveUrl } from '../../utils/googleDrive';
 
@@ -27,13 +29,17 @@ export default function WorkspaceHeader({ video }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-        <div className="back-link" onClick={() => setTopView('videos')}>
-          <ArrowLeft className="w-4 h-4" />
-          Back to All Videos
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="back-link" onClick={() => setTopView('videos')}>
+            <ArrowLeft className="w-4 h-4" />
+            Back to All Videos
+          </div>
+          <CloudSyncStatus />
         </div>
 
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <CollaboratorPresence />
           {studioDriveFolder ? (
             <a
               href={formatDriveFolderUrl(studioDriveFolder)}

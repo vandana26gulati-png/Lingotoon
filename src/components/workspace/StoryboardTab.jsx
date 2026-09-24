@@ -22,9 +22,11 @@ import {
   Clock,
   User,
   Check,
-  Table as TableIcon
+  Table as TableIcon,
+  MessageSquare
 } from 'lucide-react';
 import AVProductionTable from './AVProductionTable';
+import ShotCommentsModal from '../common/ShotCommentsModal';
 
 export default function StoryboardTab({ video }) {
   const {
@@ -49,6 +51,9 @@ export default function StoryboardTab({ video }) {
   const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
   const [versionNotes, setVersionNotes] = useState('');
   const [versionFrontImage, setVersionFrontImage] = useState(video.storyboardCover || video.shots?.[0]?.pic || null);
+
+  const [activeCommentShot, setActiveCommentShot] = useState(null);
+  const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
 
   const studioDriveFolder = localStorage.getItem('lingotoon_studio_gdrive_folder');
 
@@ -274,6 +279,23 @@ export default function StoryboardTab({ video }) {
                     </button>
                     <button
                       type="button"
+                      className={`quick-icon-btn ${shot.comments?.length > 0 ? 'active' : ''}`}
+                      onClick={() => {
+                        setActiveCommentShot({ shot, idx });
+                        setIsCommentModalOpen(true);
+                      }}
+                      title={`Comments & Director Notes (${shot.comments?.length || 0})`}
+                      style={shot.comments?.length > 0 ? { color: 'var(--grape)', background: '#ede7f6', borderColor: 'var(--grape-light)' } : {}}
+                    >
+                      <MessageSquare className="w-3 h-3" />
+                      {shot.comments?.length > 0 && (
+                        <span style={{ fontSize: '9px', fontWeight: 800, marginLeft: '2px' }}>
+                          {shot.comments.length}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
                       className="quick-icon-btn"
                       onClick={() => duplicateShot(video.id, idx)}
                       title="Duplicate panel"
@@ -461,6 +483,23 @@ export default function StoryboardTab({ video }) {
                     </button>
                     <button
                       type="button"
+                      className={`quick-icon-btn ${shot.comments?.length > 0 ? 'active' : ''}`}
+                      onClick={() => {
+                        setActiveCommentShot({ shot, idx });
+                        setIsCommentModalOpen(true);
+                      }}
+                      title={`Comments & Director Notes (${shot.comments?.length || 0})`}
+                      style={shot.comments?.length > 0 ? { color: 'var(--grape)', background: '#ede7f6', borderColor: 'var(--grape-light)' } : {}}
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      {shot.comments?.length > 0 && (
+                        <span style={{ fontSize: '10px', fontWeight: 800, marginLeft: '3px' }}>
+                          {shot.comments.length}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
                       className="quick-icon-btn"
                       onClick={() => duplicateShot(video.id, idx)}
                       title="Duplicate"
@@ -625,6 +664,20 @@ export default function StoryboardTab({ video }) {
           </div>
         </form>
       </Modal>
+
+      {/* Comments & Notes Modal */}
+      {activeCommentShot && (
+        <ShotCommentsModal
+          isOpen={isCommentModalOpen}
+          onClose={() => {
+            setIsCommentModalOpen(false);
+            setActiveCommentShot(null);
+          }}
+          videoId={video.id}
+          shotIndex={activeCommentShot.idx}
+          shot={video.shots[activeCommentShot.idx]}
+        />
+      )}
 
       {/* Google Drive Cloud Hub Modal */}
       <GoogleDriveModal

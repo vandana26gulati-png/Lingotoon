@@ -17,8 +17,10 @@ import {
   Check,
   Sparkles,
   Layers,
-  ChevronDown
+  ChevronDown,
+  MessageSquare
 } from 'lucide-react';
+import ShotCommentsModal from '../common/ShotCommentsModal';
 
 export default function AVProductionTable({ video, contextTab = 'storyboard' }) {
   const {
@@ -31,6 +33,8 @@ export default function AVProductionTable({ video, contextTab = 'storyboard' }) 
   } = useVideo();
 
   const [copiedForSheets, setCopiedForSheets] = useState(false);
+  const [activeCommentShot, setActiveCommentShot] = useState(null);
+  const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const shots = video.shots || [];
 
   // Calculate total runtime in seconds
@@ -338,6 +342,24 @@ export default function AVProductionTable({ video, contextTab = 'storyboard' }) 
 
                       <button
                         type="button"
+                        className={`quick-icon-btn ${shot.comments?.length > 0 ? 'active' : ''}`}
+                        onClick={() => {
+                          setActiveCommentShot({ shot, idx });
+                          setIsCommentModalOpen(true);
+                        }}
+                        title={`Comments & Director Notes (${shot.comments?.length || 0})`}
+                        style={shot.comments?.length > 0 ? { color: 'var(--grape)', background: '#ede7f6', borderColor: 'var(--grape-light)' } : {}}
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        {shot.comments?.length > 0 && (
+                          <span style={{ fontSize: '9px', fontWeight: 800, marginLeft: '2px' }}>
+                            {shot.comments.length}
+                          </span>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
                         className="quick-icon-btn"
                         onClick={() => duplicateShot(video.id, idx)}
                         title="Duplicate Scene"
@@ -377,6 +399,20 @@ export default function AVProductionTable({ video, contextTab = 'storyboard' }) 
           </div>
         )}
       </div>
+
+      {/* Shot Comments Modal */}
+      {activeCommentShot && (
+        <ShotCommentsModal
+          isOpen={isCommentModalOpen}
+          onClose={() => {
+            setIsCommentModalOpen(false);
+            setActiveCommentShot(null);
+          }}
+          videoId={video.id}
+          shotIndex={activeCommentShot.idx}
+          shot={video.shots[activeCommentShot.idx]}
+        />
+      )}
     </div>
   );
 }
