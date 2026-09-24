@@ -18,9 +18,11 @@ import {
   Sparkles,
   Layers,
   ChevronDown,
-  MessageSquare
+  MessageSquare,
+  Maximize2
 } from 'lucide-react';
 import ShotCommentsModal from '../common/ShotCommentsModal';
+import StoryboardFullscreenModal from './StoryboardFullscreenModal';
 
 export default function AVProductionTable({ video, contextTab = 'storyboard' }) {
   const {
@@ -35,6 +37,7 @@ export default function AVProductionTable({ video, contextTab = 'storyboard' }) 
   const [copiedForSheets, setCopiedForSheets] = useState(false);
   const [activeCommentShot, setActiveCommentShot] = useState(null);
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+  const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
   const shots = video.shots || [];
 
   // Calculate total runtime in seconds
@@ -135,6 +138,27 @@ export default function AVProductionTable({ video, contextTab = 'storyboard' }) 
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="btn btn-sm"
+            style={{
+              background: 'linear-gradient(135deg, #2e1065 0%, #4c1d95 100%)',
+              color: '#ffffff',
+              border: '1.5px solid #8b5cf6',
+              fontSize: '11.5px',
+              padding: '5px 12px',
+              boxShadow: '0 4px 12px rgba(109, 40, 217, 0.25)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+            onClick={() => setIsFullscreenOpen(true)}
+            title="Present Storyboard in Whole Screen Theater Mode (Animatic Slideshow)"
+          >
+            <Maximize2 className="w-3.5 h-3.5 text-purple-300" />
+            Whole Screen
+          </button>
+
           <button
             type="button"
             className="btn btn-ghost btn-sm"
@@ -413,6 +437,14 @@ export default function AVProductionTable({ video, contextTab = 'storyboard' }) 
           shot={video.shots[activeCommentShot.idx]}
         />
       )}
+
+      {/* Whole Screen Storyboard Presentation Modal */}
+      <StoryboardFullscreenModal
+        isOpen={isFullscreenOpen}
+        onClose={() => setIsFullscreenOpen(false)}
+        video={video}
+        initialIndex={0}
+      />
     </div>
   );
 }

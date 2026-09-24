@@ -6,7 +6,25 @@ export const CAMERA_OPTIONS = [
   "Over-the-shoulder",
   "Aerial / Drone",
   "Dutch angle",
-  "Low-angle hero"
+  "Low-angle hero",
+  "Point of View (POV)",
+  "Extreme Close-up"
+];
+
+export const CAMERA_MOVEMENTS = [
+  "Static (Fixed)",
+  "Pan Left",
+  "Pan Right",
+  "Tilt Up",
+  "Tilt Down",
+  "Zoom In",
+  "Zoom Out",
+  "Dolly In (Push)",
+  "Dolly Out (Pull)",
+  "Tracking (Truck)",
+  "Pedestal Up/Down",
+  "Handheld (Shake)",
+  "Crane / Drone"
 ];
 
 export const REJECTION_REASONS = [

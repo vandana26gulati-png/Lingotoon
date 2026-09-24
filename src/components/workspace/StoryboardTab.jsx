@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useVideo } from '../../context/VideoContext';
-import { CAMERA_OPTIONS, REJECTION_REASONS } from '../../data/initialData';
+import { CAMERA_OPTIONS, CAMERA_MOVEMENTS, REJECTION_REASONS } from '../../data/initialData';
 import Modal from '../common/Modal';
 import ImageUploadBox from '../common/ImageUploadBox';
 import GoogleDriveModal from '../common/GoogleDriveModal';
@@ -23,10 +23,15 @@ import {
   User,
   Check,
   Table as TableIcon,
-  MessageSquare
+  MessageSquare,
+  Maximize2,
+  Volume2,
+  Compass,
+  Play
 } from 'lucide-react';
 import AVProductionTable from './AVProductionTable';
 import ShotCommentsModal from '../common/ShotCommentsModal';
+import StoryboardFullscreenModal from './StoryboardFullscreenModal';
 
 export default function StoryboardTab({ video }) {
   const {
@@ -54,6 +59,9 @@ export default function StoryboardTab({ video }) {
 
   const [activeCommentShot, setActiveCommentShot] = useState(null);
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+
+  const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
+  const [fullscreenStartIndex, setFullscreenStartIndex] = useState(0);
 
   const studioDriveFolder = localStorage.getItem('lingotoon_studio_gdrive_folder');
 
@@ -199,6 +207,30 @@ export default function StoryboardTab({ video }) {
             </button>
           </div>
 
+          <button
+            type="button"
+            className="btn btn-sm"
+            style={{
+              background: 'linear-gradient(135deg, #2e1065 0%, #4c1d95 100%)',
+              color: '#ffffff',
+              border: '1.5px solid #8b5cf6',
+              fontSize: '11.5px',
+              padding: '5px 13px',
+              boxShadow: '0 4px 12px rgba(109, 40, 217, 0.25)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+            onClick={() => {
+              setFullscreenStartIndex(0);
+              setIsFullscreenOpen(true);
+            }}
+            title="Present Storyboard in Whole Screen Theater Mode (Animatic Slideshow)"
+          >
+            <Maximize2 className="w-3.5 h-3.5 text-purple-300" />
+            Whole Screen Mode
+          </button>
+
           <button className="btn btn-ghost btn-sm" onClick={() => addShot(video.id)}>
             <Plus className="w-3.5 h-3.5" />
             Add Shot
@@ -297,6 +329,17 @@ export default function StoryboardTab({ video }) {
                     <button
                       type="button"
                       className="quick-icon-btn"
+                      onClick={() => {
+                        setFullscreenStartIndex(idx);
+                        setIsFullscreenOpen(true);
+                      }}
+                      title="Present Whole Screen from here (⛶)"
+                    >
+                      <Maximize2 className="w-3 h-3 text-purple-600" />
+                    </button>
+                    <button
+                      type="button"
+                      className="quick-icon-btn"
                       onClick={() => duplicateShot(video.id, idx)}
                       title="Duplicate panel"
                     >
@@ -318,46 +361,63 @@ export default function StoryboardTab({ video }) {
                   <ImageUploadBox
                     value={shot.pic}
                     onChange={(newPic) => updateShot(video.id, idx, { pic: newPic })}
-                    label={`Shot ${idx + 1} Front Frame`}
+                    label={`Shot ${idx + 1} 16:9 Frame`}
                     placeholder="Drop image or paste Google Drive link"
                     compact={true}
                   />
                 </div>
 
-                {/* Content Body */}
+                {/* Content Body — Storyboard That Cell Breakdown */}
                 <div className="cinema-card-body">
+                  {/* Action Description */}
                   <div className="field">
                     <label style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', fontWeight: 700 }}>
-                      Action Description
+                      🎬 Visual Action & Staging
                     </label>
                     <textarea
                       rows={2}
                       value={shot.desc}
-                      placeholder="Describe camera movement and character action..."
+                      placeholder="What is visually happening? (character movement, visual staging)..."
                       onChange={(e) => updateShot(video.id, idx, { desc: e.target.value })}
                       style={{ fontSize: '12.5px', lineHeight: 1.45 }}
                     />
                   </div>
 
+                  {/* Dialogue / VO Line */}
                   <div className="field">
                     <label style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', fontWeight: 700 }}>
-                      Dialogue / VO Line
+                      💬 Dialogue / Voice Over
                     </label>
                     <input
                       type="text"
                       value={shot.dialogue || ''}
-                      placeholder='e.g. "Look, the lantern is moving!"'
+                      placeholder='e.g. "We need to move before the sunrise!"'
                       onChange={(e) => updateShot(video.id, idx, { dialogue: e.target.value })}
-                      style={{ fontSize: '12.5px' }}
+                      style={{ fontSize: '12px' }}
                     />
                   </div>
 
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: 'auto', paddingTop: '4px' }}>
-                    <div style={{ flex: 1 }}>
+                  {/* Sound Effects / SFX / Foley */}
+                  <div className="field">
+                    <label style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', fontWeight: 700 }}>
+                      🔊 Audio & SFX Cues
+                    </label>
+                    <input
+                      type="text"
+                      value={shot.audioSfx || shot.sfx || ''}
+                      placeholder="e.g. [SFX: Heavy rain, distant thunder, car doors]"
+                      onChange={(e) => updateShot(video.id, idx, { audioSfx: e.target.value, sfx: e.target.value })}
+                      style={{ fontSize: '12px', background: '#fdfcfe' }}
+                    />
+                  </div>
+
+                  {/* Camera Framing + Movement + Duration */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 60px', gap: '6px', alignItems: 'center', marginTop: 'auto', paddingTop: '4px' }}>
+                    <div title="Camera Angle / Framing">
                       <select
-                        value={shot.camera}
+                        value={shot.camera || CAMERA_OPTIONS[0]}
                         onChange={(e) => updateShot(video.id, idx, { camera: e.target.value })}
-                        style={{ fontSize: '11.5px', padding: '4px 8px' }}
+                        style={{ fontSize: '11px', padding: '4px 6px' }}
                       >
                         {CAMERA_OPTIONS.map((c) => (
                           <option key={c} value={c}>{c}</option>
@@ -365,12 +425,24 @@ export default function StoryboardTab({ video }) {
                       </select>
                     </div>
 
-                    <div style={{ width: '70px' }}>
+                    <div title="Camera Movement / Motion">
+                      <select
+                        value={shot.cameraMovement || CAMERA_MOVEMENTS[0]}
+                        onChange={(e) => updateShot(video.id, idx, { cameraMovement: e.target.value })}
+                        style={{ fontSize: '11px', padding: '4px 6px', background: '#faf5ff', borderColor: '#d8b4fe', color: '#6b21a8' }}
+                      >
+                        {CAMERA_MOVEMENTS.map((m) => (
+                          <option key={m} value={m}>🎥 {m}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div title="Duration (seconds)">
                       <input
                         type="text"
                         value={shot.duration || '3s'}
                         onChange={(e) => updateShot(video.id, idx, { duration: e.target.value })}
-                        style={{ fontSize: '11.5px', padding: '4px 8px', textAlign: 'center' }}
+                        style={{ fontSize: '11px', padding: '4px 4px', textAlign: 'center', fontWeight: 700 }}
                       />
                     </div>
                   </div>
@@ -501,6 +573,17 @@ export default function StoryboardTab({ video }) {
                     <button
                       type="button"
                       className="quick-icon-btn"
+                      onClick={() => {
+                        setFullscreenStartIndex(idx);
+                        setIsFullscreenOpen(true);
+                      }}
+                      title="Present Whole Screen from here (⛶)"
+                    >
+                      <Maximize2 className="w-3.5 h-3.5 text-purple-600" />
+                    </button>
+                    <button
+                      type="button"
+                      className="quick-icon-btn"
                       onClick={() => duplicateShot(video.id, idx)}
                       title="Duplicate"
                     >
@@ -522,7 +605,7 @@ export default function StoryboardTab({ video }) {
                     <ImageUploadBox
                       value={shot.pic}
                       onChange={(newPic) => updateShot(video.id, idx, { pic: newPic })}
-                      label={`Shot ${idx + 1} Front Frame`}
+                      label={`Shot ${idx + 1} 16:9 Frame`}
                       placeholder="Upload or link Drive image"
                       compact={true}
                     />
@@ -530,7 +613,7 @@ export default function StoryboardTab({ video }) {
 
                   <div className="shot-paras-col">
                     <div className="field">
-                      <label style={{ fontWeight: 700 }}>Action Description</label>
+                      <label style={{ fontWeight: 700 }}>🎬 Action & Visual Staging</label>
                       <textarea
                         rows={2}
                         value={shot.desc}
@@ -539,14 +622,64 @@ export default function StoryboardTab({ video }) {
                       />
                     </div>
 
-                    <div className="field">
-                      <label style={{ fontWeight: 700 }}>Dialogue / Voiceover</label>
-                      <input
-                        type="text"
-                        value={shot.dialogue || ''}
-                        placeholder='Dialogue line...'
-                        onChange={(e) => updateShot(video.id, idx, { dialogue: e.target.value })}
-                      />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                      <div className="field">
+                        <label style={{ fontWeight: 700 }}>💬 Dialogue / Voiceover</label>
+                        <input
+                          type="text"
+                          value={shot.dialogue || ''}
+                          placeholder='Dialogue line...'
+                          onChange={(e) => updateShot(video.id, idx, { dialogue: e.target.value })}
+                        />
+                      </div>
+
+                      <div className="field">
+                        <label style={{ fontWeight: 700 }}>🔊 Audio / SFX Cues</label>
+                        <input
+                          type="text"
+                          value={shot.audioSfx || shot.sfx || ''}
+                          placeholder='[SFX: Ambient music, footsteps]'
+                          onChange={(e) => updateShot(video.id, idx, { audioSfx: e.target.value, sfx: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 70px', gap: '8px', marginTop: '4px' }}>
+                      <div className="field">
+                        <label style={{ fontSize: '10.5px' }}>Camera Framing</label>
+                        <select
+                          value={shot.camera || CAMERA_OPTIONS[0]}
+                          onChange={(e) => updateShot(video.id, idx, { camera: e.target.value })}
+                          style={{ fontSize: '11.5px', padding: '4px 6px' }}
+                        >
+                          {CAMERA_OPTIONS.map((c) => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="field">
+                        <label style={{ fontSize: '10.5px' }}>Camera Movement</label>
+                        <select
+                          value={shot.cameraMovement || CAMERA_MOVEMENTS[0]}
+                          onChange={(e) => updateShot(video.id, idx, { cameraMovement: e.target.value })}
+                          style={{ fontSize: '11.5px', padding: '4px 6px', background: '#faf5ff', borderColor: '#d8b4fe', color: '#6b21a8' }}
+                        >
+                          {CAMERA_MOVEMENTS.map((m) => (
+                            <option key={m} value={m}>🎥 {m}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="field">
+                        <label style={{ fontSize: '10.5px' }}>Duration</label>
+                        <input
+                          type="text"
+                          value={shot.duration || '3s'}
+                          onChange={(e) => updateShot(video.id, idx, { duration: e.target.value })}
+                          style={{ fontSize: '11.5px', padding: '4px 6px', textAlign: 'center', fontWeight: 700 }}
+                        />
+                      </div>
                     </div>
 
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '6px' }}>
@@ -683,6 +816,14 @@ export default function StoryboardTab({ video }) {
       <GoogleDriveModal
         isOpen={isDriveModalOpen}
         onClose={() => setIsDriveModalOpen(false)}
+      />
+
+      {/* Whole Screen Storyboard Presentation Modal */}
+      <StoryboardFullscreenModal
+        isOpen={isFullscreenOpen}
+        onClose={() => setIsFullscreenOpen(false)}
+        video={video}
+        initialIndex={fullscreenStartIndex}
       />
     </div>
   );
