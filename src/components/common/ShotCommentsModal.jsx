@@ -160,8 +160,8 @@ export default function ShotCommentsModal({
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div
                       style={{
-                        width: '24px',
-                        height: '24px',
+                        width: '26px',
+                        height: '26px',
                         borderRadius: '50%',
                         background: comment.avatarColor || '#6d28d9',
                         color: '#ffffff',
@@ -170,7 +170,9 @@ export default function ShotCommentsModal({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        textTransform: 'uppercase'
+                        textTransform: 'uppercase',
+                        textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.1)'
                       }}
                     >
                       {(comment.author || 'C').charAt(0)}

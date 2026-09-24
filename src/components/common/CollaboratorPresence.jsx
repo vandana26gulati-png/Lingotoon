@@ -143,30 +143,38 @@ export default function CollaboratorPresence() {
         className="btn btn-ghost btn-sm"
         style={{
           fontSize: '11px',
-          padding: '3px 10px',
+          padding: '4px 12px',
           borderRadius: '20px',
-          background: '#ffffff',
-          borderColor: 'var(--line)',
+          background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
+          borderColor: '#c4b5fd',
           display: 'inline-flex',
           alignItems: 'center',
-          gap: '6px'
+          gap: '6px',
+          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+          boxShadow: '0 2px 8px rgba(109, 40, 217, 0.08)'
         }}
         onClick={() => setIsOpen(!isOpen)}
         title="View active collaborators & edit your display name"
+        onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px) scale(1.03)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(109, 40, 217, 0.18)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0) scale(1)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(109, 40, 217, 0.08)'; }}
       >
-        <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+        <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', width: '14px', height: '14px' }}>
           <span
             style={{
               width: '8px',
               height: '8px',
               borderRadius: '50%',
               backgroundColor: '#10b981',
-              display: 'inline-block'
+              display: 'inline-block',
+              position: 'relative',
+              zIndex: 1
             }}
           />
           <span
             style={{
               position: 'absolute',
+              left: '-2px',
+              top: '-2px',
               width: '12px',
               height: '12px',
               borderRadius: '50%',
@@ -177,7 +185,7 @@ export default function CollaboratorPresence() {
           />
         </span>
 
-        <span style={{ fontWeight: 700, color: 'var(--text-bright)' }}>
+        <span style={{ fontWeight: 700, color: '#4c1d95' }}>
           {activeCount} {activeCount === 1 ? 'Collaborator' : 'Collaborators'}
         </span>
 
@@ -187,8 +195,8 @@ export default function CollaboratorPresence() {
             <div
               key={collab.id || i}
               style={{
-                width: '18px',
-                height: '18px',
+                width: '20px',
+                height: '20px',
                 borderRadius: '50%',
                 background: collab.color || '#6d28d9',
                 color: '#ffffff',
@@ -197,9 +205,11 @@ export default function CollaboratorPresence() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginLeft: i > 0 ? '-5px' : '0',
-                border: '1.5px solid #ffffff',
-                textTransform: 'uppercase'
+                marginLeft: i > 0 ? '-6px' : '0',
+                border: '2px solid #ffffff',
+                textTransform: 'uppercase',
+                textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.15)'
               }}
               title={`${collab.name} (${collab.role})`}
             >
@@ -208,7 +218,7 @@ export default function CollaboratorPresence() {
           ))}
         </div>
 
-        <ChevronDown className="w-3 h-3 text-purple-600" style={{ marginLeft: '1px' }} />
+        <ChevronDown className="w-3 h-3" style={{ marginLeft: '1px', color: '#7c3aed' }} />
       </button>
 
       {/* Dropdown Popover */}
@@ -326,18 +336,20 @@ export default function CollaboratorPresence() {
                   >
                     <div
                       style={{
-                        width: '28px',
-                        height: '28px',
+                        width: '30px',
+                        height: '30px',
                         borderRadius: '50%',
                         background: collab.color || '#6d28d9',
                         color: '#ffffff',
-                        fontSize: '11px',
+                        fontSize: '12px',
                         fontWeight: 800,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         textTransform: 'uppercase',
-                        flexShrink: 0
+                        flexShrink: 0,
+                        textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.12)'
                       }}
                     >
                       {(collab.name || 'U').charAt(0)}
