@@ -377,19 +377,66 @@ export default function GoogleDriveModal({ isOpen, onClose }) {
             {connectionStatus && (
               <div
                 style={{
-                  padding: '8px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  fontSize: '11.5px',
+                  padding: '12px 14px',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '12px',
                   display: 'flex',
-                  alignItems: 'center',
+                  flexDirection: 'column',
                   gap: '8px',
-                  background: connectionStatus.success ? '#ecfdf5' : '#fffbeb',
-                  border: connectionStatus.success ? '1px solid #a7f3d0' : '1px solid #fde68a',
-                  color: connectionStatus.success ? '#065f46' : '#92400e'
+                  background: connectionStatus.success ? '#ecfdf5' : '#fff7ed',
+                  border: connectionStatus.success ? '1px solid #a7f3d0' : '1px solid #fdba74',
+                  color: connectionStatus.success ? '#065f46' : '#9a3412',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
                 }}
               >
-                {connectionStatus.success ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 flex-shrink-0" />}
-                <span>{connectionStatus.msg}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
+                  {connectionStatus.success ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 flex-shrink-0 text-orange-600" />}
+                  <span>{connectionStatus.msg}</span>
+                </div>
+
+                {!connectionStatus.success && (
+                  <div style={{ background: '#ffffff', padding: '10px 12px', borderRadius: '6px', border: '1px solid #fed7aa', color: '#431407', fontSize: '11.5px', lineHeight: 1.55 }}>
+                    <div style={{ fontWeight: 700, marginBottom: '4px', color: '#c2410c' }}>
+                      👉 How to fix this in Google Apps Script (20 seconds):
+                    </div>
+                    <ol style={{ margin: '0 0 8px 0', paddingLeft: '18px' }}>
+                      <li>Open <a href="https://script.google.com" target="_blank" rel="noreferrer" style={{ color: '#ea580c', fontWeight: 700, textDecoration: 'underline' }}>script.google.com ↗</a> and open your project.</li>
+                      <li>Select all code in <code>Code.gs</code>, paste the code below, and press <b>Ctrl + S</b> to save.</li>
+                      <li>Click <b>Deploy (top right)</b> ➔ <b>Manage deployments</b>.</li>
+                      <li>Click the <b>Pencil (Edit)</b> icon next to your active Web App deployment.</li>
+                      <li>Change <b>Version</b> dropdown to <b>"New version"</b> and ensure access is <b>"Anyone"</b>.</li>
+                      <li>Click <b>Deploy</b>, then come back here and click <b>Test Connection</b>!</li>
+                    </ol>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        style={{ fontSize: '10.5px', padding: '3px 10px', background: '#ea580c', borderColor: '#ea580c' }}
+                        onClick={handleCopyScript}
+                      >
+                        {copiedScript ? <Check className="w-3 h-3 mr-1" /> : <Copy className="w-3 h-3 mr-1" />}
+                        {copiedScript ? 'Code Copied!' : 'Copy Apps Script Code'}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        style={{ fontSize: '10.5px', padding: '3px 10px' }}
+                        onClick={exportDataAsJSON}
+                        title="Download backup file to drag & drop into Google Drive folder manually"
+                      >
+                        <Download className="w-3 h-3 mr-1" /> Download Database JSON File
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        style={{ fontSize: '10.5px', padding: '3px 10px' }}
+                        onClick={handleOpenFolder}
+                      >
+                        <ExternalLink className="w-3 h-3 mr-1" /> Open Drive Folder ↗
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
