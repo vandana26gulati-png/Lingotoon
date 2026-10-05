@@ -9,7 +9,7 @@ export const STORAGE_KEY_GDRIVE_API = 'lingotoon_owner_gdrive_api_url';
 export const STORAGE_KEY_GDRIVE_FOLDER = 'lingotoon_studio_gdrive_folder';
 export const STORAGE_KEY_GDRIVE_AUTO_UPLOAD = 'lingotoon_gdrive_auto_upload';
 // Default pre-configured Owner Google Drive Cloud Bridge
-export const DEFAULT_GDRIVE_API_URL = 'https://script.google.com/macros/s/AKfycbxI431TUlmX7rKXeBs5IOJh-Y-07tfYmKMDjVaeHtoOHRyb7Z98StawiieU8_SeIw8/exec';
+export const DEFAULT_GDRIVE_API_URL = 'https://script.google.com/macros/s/AKfycbzWfsMwxBSXORyEoMxpCUHrOtcHbuM8t-n-i09HRtThr7tX2TAPqX2XrJiV-NCXIAp0YA/exec';
 export const DEFAULT_GDRIVE_FOLDER_ID = '1iwJh3GtwDtAjUy4t1FeqBgw0b_XBmyva';
 
 /**
