@@ -3,9 +3,9 @@
  * for Lingotoon Animation Studio.
  * 
  * Provides:
- * 1. Global Zero-Config Cloud Sync (works across all browsers/links out-of-the-box)
- * 2. Bi-directional sync with Owner's Google Drive (permanent archive)
- * 3. Cross-device presence & heartbeat broadcasting
+ * 1. Global Zero-Config Cloud Sync via Studio Owner's Google Cloud Bridge
+ * 2. Automatic dual persistence: Google Drive Folder + Script Properties Datastore
+ * 3. Cross-tab and cross-device realtime synchronization
  * 4. Conflict-free timestamped merging
  */
 
@@ -14,9 +14,6 @@ import {
   fetchDatabaseFromOwnerDrive,
   isOwnerDriveConfigured
 } from './googleDrive';
-
-// Global Cloud Sync Endpoint (persisted object for Lingotoon Studio)
-const CLOUD_SYNC_ENDPOINT = 'https://api.restful-api.dev/objects/ff808181a09d98f701a10a9663e279de';
 
 const BROADCAST_CHANNEL_NAME = 'lingotoon_global_sync_bus';
 let broadcastChannel = null;
@@ -48,42 +45,20 @@ export async function pushStudioStateToCloud(videos, user = null) {
     };
   }
 
-  const payload = {
-    name: 'Lingotoon Global Studio DB',
-    data: {
-      videos: normalizedVideos,
-      lastUpdated: timestamp,
-      updatedBy: userName
-    }
-  };
-
-  // 1. Save to Global Cloud Endpoint (Instant multi-device link sync)
+  // Save to Google Cloud Bridge (Dual: Drive Folder + Script Properties)
   let cloudSuccess = false;
-  try {
-    const res = await fetch(CLOUD_SYNC_ENDPOINT, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    if (res.ok) {
-      cloudSuccess = true;
-    }
-  } catch (err) {
-    console.warn('Global Cloud sync notice:', err.message);
-  }
-
-  // 2. Also save to Owner's Google Drive (Permanent archive)
-  let driveSuccess = false;
   if (isOwnerDriveConfigured()) {
     try {
-      await saveDatabaseToOwnerDrive(normalizedVideos);
-      driveSuccess = true;
+      const res = await saveDatabaseToOwnerDrive(normalizedVideos);
+      if (res && res.success) {
+        cloudSuccess = true;
+      }
     } catch (err) {
-      console.warn('Google Drive sync notice:', err.message);
+      console.warn('Google Cloud sync notice:', err.message);
     }
   }
 
-  // 3. Broadcast to all open tabs on the same machine
+  // Broadcast to all open tabs on the same machine
   if (broadcastChannel) {
     try {
       broadcastChannel.postMessage({
@@ -95,9 +70,9 @@ export async function pushStudioStateToCloud(videos, user = null) {
   }
 
   return {
-    success: cloudSuccess || driveSuccess,
+    success: cloudSuccess,
     cloudSuccess,
-    driveSuccess,
+    driveSuccess: cloudSuccess,
     timestamp
   };
 }
@@ -109,56 +84,19 @@ export async function pushStudioStateToCloud(videos, user = null) {
  * @returns {Promise<{videos: Object, lastUpdated: number, source: string} | null>}
  */
 export async function pullLatestStudioStateFromCloud() {
-  let cloudData = null;
-  let cloudTime = 0;
+  if (!isOwnerDriveConfigured()) return null;
 
-  // 1. Try Global Cloud
   try {
-    const res = await fetch(`${CLOUD_SYNC_ENDPOINT}?t=${Date.now()}`, {
-      headers: { 'Accept': 'application/json' }
-    });
-    if (res.ok) {
-      const json = await res.json();
-      if (json?.data?.videos && typeof json.data.videos === 'object') {
-        cloudData = json.data.videos;
-        cloudTime = json.data.lastUpdated || 0;
-      }
+    const data = await fetchDatabaseFromOwnerDrive();
+    if (data && typeof data === 'object') {
+      return {
+        videos: data,
+        lastUpdated: Date.now(),
+        source: 'google_cloud'
+      };
     }
   } catch (err) {
-    console.warn('Global Cloud pull notice:', err.message);
-  }
-
-  // 2. Try Google Drive if configured
-  let driveData = null;
-  let driveTime = 0;
-  if (isOwnerDriveConfigured()) {
-    try {
-      const gDriveRes = await fetchDatabaseFromOwnerDrive();
-      if (gDriveRes && typeof gDriveRes === 'object' && Object.keys(gDriveRes).length > 0) {
-        driveData = gDriveRes;
-        // Check if there is an updatedAt flag
-        driveTime = Date.now(); // Drive file presence is authoritative if newer
-      }
-    } catch (err) {
-      // Expected if Apps Script is still pending redeployment
-    }
-  }
-
-  // Prefer the freshest source
-  if (cloudData && (!driveData || cloudTime >= driveTime)) {
-    return {
-      videos: cloudData,
-      lastUpdated: cloudTime,
-      source: 'global_cloud'
-    };
-  }
-
-  if (driveData) {
-    return {
-      videos: driveData,
-      lastUpdated: driveTime,
-      source: 'google_drive'
-    };
+    // Expected if script is still deploying
   }
 
   return null;

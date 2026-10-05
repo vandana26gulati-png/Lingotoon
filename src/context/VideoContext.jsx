@@ -136,9 +136,10 @@ export function VideoProvider({ children }) {
 
     initCloudSync();
 
-    // Setup Active Polling: Check for collaborator updates every 8 seconds
+    // Setup Active Polling: Check for collaborator updates every 12 seconds when tab is active
     const pollInterval = setInterval(async () => {
       if (!isInitialLoadDoneRef.current) return;
+      if (typeof document !== 'undefined' && document.hidden) return;
       try {
         const cloudResult = await pullLatestStudioStateFromCloud();
         if (cloudResult && cloudResult.videos && cloudResult.lastUpdated > (lastSyncTimestampRef.current || 0)) {
@@ -151,7 +152,7 @@ export function VideoProvider({ children }) {
           setLastSyncedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
         }
       } catch (e) {}
-    }, 8000);
+    }, 12000);
 
     // Sync immediately whenever user switches back to this tab/window
     const handleVisibilityOrFocus = async () => {

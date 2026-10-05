@@ -104,9 +104,18 @@ export async function testOwnerDriveConnection(customApiUrl = null) {
       throw new Error(data?.error || `HTTP ${response.status}`);
     }
 
+    let statusMsg = 'Connected to Studio Cloud Sync Engine!';
+    if (data.driveAuthorized === true) {
+      statusMsg = 'Connected! Google Drive folder & Cloud Sync are fully active.';
+    } else if (data.driveAuthorized === false) {
+      statusMsg = 'Cloud Sync active! Select "authorizeGoogleDrive" in script editor to link Drive folder.';
+    } else if (data.service) {
+      statusMsg = `Connected: ${data.service}`;
+    }
+
     return {
       success: true,
-      message: data.service || 'Connected to Owner Google Drive Storage',
+      message: statusMsg,
       data
     };
   } catch (err) {
