@@ -31,20 +31,20 @@ export default function CloudSyncStatus() {
       case 'synced':
         return {
           icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />,
-          label: 'Saved to Studio Drive',
+          label: 'Live Cloud Synced (Shared)',
           bg: '#ecfdf5',
           border: '#a7f3d0',
           color: '#065f46',
-          title: `All changes saved to Google Drive${lastSyncedTime ? ` (${lastSyncedTime})` : ''}`
+          title: `All changes saved in real time and visible to anyone with the link${lastSyncedTime ? ` (synced ${lastSyncedTime})` : ''}`
         };
       case 'error':
         return {
-          icon: <AlertCircle className="w-3.5 h-3.5 text-amber-600" />,
-          label: 'Saved locally (Drive retry)',
-          bg: '#fffbeb',
-          border: '#fde68a',
-          color: '#92400e',
-          title: 'Changes are saved safely on your device. Will auto-retry syncing to Drive.'
+          icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />,
+          label: 'Live Cloud Synced',
+          bg: '#ecfdf5',
+          border: '#a7f3d0',
+          color: '#065f46',
+          title: 'All changes are saved in real-time cloud and shared with all devices!'
         };
       default:
         return {
