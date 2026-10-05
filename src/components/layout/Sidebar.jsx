@@ -9,7 +9,7 @@ export default function Sidebar() {
   const { topView, setTopView, resetToDemoData, exportDataAsJSON, videos } = useVideo();
   const [isDriveModalOpen, setIsDriveModalOpen] = useState(false);
 
-  const totalVideos = Object.keys(videos).length;
+  const totalVideos = Object.keys(videos || {}).length;
 
   return (
     <aside className="sidebar">

@@ -27,12 +27,12 @@ export default function CollaboratorPresence() {
   const [isOpen, setIsOpen] = useState(false);
   const [collaborators, setCollaborators] = useState([]);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [nameInput, setNameInput] = useState(currentUser.name);
-  const [roleInput, setRoleInput] = useState(currentUser.role);
-  const [colorInput, setColorInput] = useState(currentUser.color);
+  const [nameInput, setNameInput] = useState(currentUser?.name || 'Director (You)');
+  const [roleInput, setRoleInput] = useState(currentUser?.role || 'Director');
+  const [colorInput, setColorInput] = useState(currentUser?.color || '#6d28d9');
 
   const popoverRef = useRef(null);
-  const currentScenarioTitle = videos[currentVideoId]?.title || 'Main Studio Dashboard';
+  const currentScenarioTitle = videos?.[currentVideoId]?.title || 'Main Studio Dashboard';
 
   // Heartbeat & presence broadcaster via BroadcastChannel + localStorage
   useEffect(() => {

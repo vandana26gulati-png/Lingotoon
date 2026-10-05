@@ -10,13 +10,19 @@ export default function VideoGrid() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
-  const videoList = Object.values(videos);
+  const videoList = Object.values(videos || {});
 
   const filtered = videoList.filter(v => {
+    if (!v) return false;
+    const search = (searchTerm || '').toLowerCase();
+    const title = (v.title || '').toLowerCase();
+    const logline = (v.logline || '').toLowerCase();
+    const createdBy = (v.createdBy || '').toLowerCase();
+
     const matchesSearch =
-      v.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      v.logline.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      v.createdBy.toLowerCase().includes(searchTerm.toLowerCase());
+      title.includes(search) ||
+      logline.includes(search) ||
+      createdBy.includes(search);
 
     const matchesStatus =
       filterStatus === 'all' || v.status === filterStatus;
