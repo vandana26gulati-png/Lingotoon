@@ -77,20 +77,42 @@ export async function testOwnerDriveConnection(customApiUrl = null) {
       headers: { 'Accept': 'application/json' }
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status} ${response.statusText}`);
+    const rawText = await response.text();
+    let data;
+    try {
+      data = JSON.parse(rawText);
+    } catch (e) {
+      if (rawText.includes('Script function not found')) {
+        return {
+          success: false,
+          error: "Google Apps Script needs redeployment: 'doGet' not found. In script.google.com, click Deploy > Manage deployments > Edit > Version: New version > Deploy."
+        };
+      }
+      if (rawText.includes('Authorization') || rawText.includes('accounts.google.com')) {
+        return {
+          success: false,
+          error: "Google Apps Script access restricted: Ensure 'Who has access' is set to 'Anyone' in the Web App deployment."
+        };
+      }
+      return {
+        success: false,
+        error: `Apps Script returned non-JSON response. Check deployment settings in script.google.com.`
+      };
     }
 
-    const data = await response.json();
+    if (!response.ok || !data.success) {
+      throw new Error(data?.error || `HTTP ${response.status}`);
+    }
+
     return {
-      success: data.success === true,
+      success: true,
       message: data.service || 'Connected to Owner Google Drive Storage',
       data
     };
   } catch (err) {
     return {
       success: false,
-      error: `Connection test failed: ${err.message}. Make sure your Apps Script is deployed as Web App with access set to 'Anyone'.`
+      error: `Connection test failed: ${err.message}`
     };
   }
 }
@@ -141,13 +163,19 @@ export async function uploadFileToOwnerDrive(fileOrBase64, customFileName = null
     body: JSON.stringify(payload)
   });
 
-  if (!response.ok) {
-    throw new Error(`Google Drive API returned HTTP ${response.status}`);
+  const rawText = await response.text();
+  let result;
+  try {
+    result = JSON.parse(rawText);
+  } catch (e) {
+    if (rawText.includes('Script function not found')) {
+      throw new Error("Google Apps Script is missing 'doPost'. In script.google.com, ensure lingotoon-gdrive-bridge.gs is saved and deploy a 'New version'.");
+    }
+    throw new Error(`Google Drive returned non-JSON response (HTTP ${response.status})`);
   }
 
-  const result = await response.json();
-  if (!result.success) {
-    throw new Error(result.error || 'Failed to upload file to Google Drive');
+  if (!response.ok || !result.success) {
+    throw new Error(result?.error || 'Failed to upload file to Google Drive');
   }
 
   return {
@@ -196,13 +224,19 @@ export async function saveDatabaseToOwnerDrive(databaseObject) {
     body: JSON.stringify(payload)
   });
 
-  if (!response.ok) {
-    throw new Error(`Google Drive API returned HTTP ${response.status}`);
+  const rawText = await response.text();
+  let result;
+  try {
+    result = JSON.parse(rawText);
+  } catch (e) {
+    if (rawText.includes('Script function not found')) {
+      throw new Error("Google Apps Script needs redeployment: 'doPost' not found. In script.google.com, click Deploy > Manage deployments > Edit > Version: New version > Deploy.");
+    }
+    throw new Error(`Google Apps Script returned unexpected response (HTTP ${response.status})`);
   }
 
-  const result = await response.json();
-  if (!result.success) {
-    throw new Error(result.error || 'Failed to sync database to Google Drive');
+  if (!response.ok || !result.success) {
+    throw new Error(result?.error || 'Failed to sync database to Google Drive');
   }
 
   return result;
@@ -223,13 +257,19 @@ export async function fetchDatabaseFromOwnerDrive() {
     headers: { 'Accept': 'application/json' }
   });
 
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: Failed to fetch database from Google Drive`);
+  const rawText = await response.text();
+  let result;
+  try {
+    result = JSON.parse(rawText);
+  } catch (e) {
+    if (rawText.includes('Script function not found')) {
+      throw new Error("Google Apps Script needs redeployment: 'doGet' not found.");
+    }
+    throw new Error(`Google Apps Script returned unexpected response (HTTP ${response.status})`);
   }
 
-  const result = await response.json();
-  if (!result.success) {
-    throw new Error(result.error || 'No database found on Google Drive');
+  if (!response.ok || !result.success) {
+    throw new Error(result?.error || 'No database found on Google Drive');
   }
 
   return result.data;
