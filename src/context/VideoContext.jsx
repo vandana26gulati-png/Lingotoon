@@ -1,10 +1,15 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { INITIAL_VIDEOS, TOOL_OPTIONS } from '../data/initialData';
 import {
   saveDatabaseToOwnerDrive,
   fetchDatabaseFromOwnerDrive,
   isOwnerDriveConfigured
 } from '../utils/googleDrive';
+import {
+  pushStudioStateToCloud,
+  pullLatestStudioStateFromCloud,
+  mergeStudioVideos
+} from '../utils/cloudSync';
 
 const VideoContext = createContext();
 
@@ -54,10 +59,10 @@ export function VideoProvider({ children }) {
   };
 
   // Cloud Sync state
-  const [cloudStatus, setCloudStatus] = useState(() => {
-    return isOwnerDriveConfigured() ? 'syncing' : 'local_only';
-  });
+  const [cloudStatus, setCloudStatus] = useState('syncing');
   const [lastSyncedTime, setLastSyncedTime] = useState(null);
+  const lastSyncTimestampRef = useRef(0);
+  const isInitialLoadDoneRef = useRef(false);
 
   // Auto-save to localStorage whenever videos change
   useEffect(() => {
@@ -68,65 +73,40 @@ export function VideoProvider({ children }) {
     }
   }, [videos]);
 
-  // Initial Boot: Non-destructive Cloud Load & Auto-Migration
+  // Initial Boot & Live Sync: Connects all visitors to the shared cloud database
   useEffect(() => {
     let isMounted = true;
 
     async function initCloudSync() {
-      if (!isOwnerDriveConfigured()) {
-        setCloudStatus('local_only');
-        return;
-      }
-
       try {
         setCloudStatus('syncing');
-        const cloudData = await fetchDatabaseFromOwnerDrive();
+        const cloudResult = await pullLatestStudioStateFromCloud();
 
-        if (cloudData && typeof cloudData === 'object' && Object.keys(cloudData).length > 0) {
-          // Cloud database exists! Merge non-destructively with local data so no changes are lost:
+        if (cloudResult && cloudResult.videos && typeof cloudResult.videos === 'object') {
+          const cloudVids = cloudResult.videos;
+          const cloudTime = cloudResult.lastUpdated || Date.now();
+
           setVideos(prev => {
-            const merged = { ...prev };
-            for (const [vidId, cloudVid] of Object.entries(cloudData)) {
-              if (!merged[vidId]) {
-                merged[vidId] = cloudVid;
-              } else {
-                const localShots = merged[vidId].shots || [];
-                const cloudShots = cloudVid.shots || [];
-                const maxLen = Math.max(localShots.length, cloudShots.length);
-                const mergedShots = [];
+            const hasLocalVideos = prev && Object.keys(prev).length > 0;
+            const hasCloudVideos = Object.keys(cloudVids).length > 0;
 
-                for (let i = 0; i < maxLen; i++) {
-                  const sLocal = localShots[i] || {};
-                  const sCloud = cloudShots[i] || {};
-                  const localComments = sLocal.comments || [];
-                  const cloudComments = sCloud.comments || [];
-                  const commentIds = new Set(localComments.map(c => c.id));
-                  const combinedComments = [...localComments];
-
-                  for (const c of cloudComments) {
-                    if (!commentIds.has(c.id)) {
-                      combinedComments.push(c);
-                    }
-                  }
-
-                  mergedShots.push({
-                    ...sCloud,
-                    ...sLocal,
-                    comments: combinedComments
-                  });
-                }
-
-                merged[vidId] = {
-                  ...cloudVid,
-                  ...merged[vidId],
-                  shots: mergedShots
-                };
-              }
+            let updated;
+            if (!hasLocalVideos && hasCloudVideos) {
+              // Fresh visitor opening the link: immediately load cloud projects!
+              updated = cloudVids;
+            } else if (hasLocalVideos && hasCloudVideos) {
+              // Smart conflict-free merge
+              updated = mergeStudioVideos(prev, cloudVids);
+            } else if (hasLocalVideos && !hasCloudVideos) {
+              // Local has data, cloud is empty: seed cloud with local data
+              pushStudioStateToCloud(prev, currentUser).catch(() => {});
+              updated = prev;
+            } else {
+              updated = prev;
             }
 
-            // Immediately save merged state back to Google Drive so Drive has all old + cloud changes!
-            saveDatabaseToOwnerDrive(merged).catch(err => console.warn('Sync back err:', err));
-            return merged;
+            lastSyncTimestampRef.current = cloudTime;
+            return updated;
           });
 
           if (isMounted) {
@@ -134,60 +114,108 @@ export function VideoProvider({ children }) {
             setLastSyncedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
           }
         } else {
-          // Cloud DB was empty or not found: Immediately upload the user's existing work!
-          // This guarantees that OLD CHANGES ARE AUTOMATICALLY SAVED TO GOOGLE DRIVE!
-          const currentLocal = videos;
-          if (currentLocal && Object.keys(currentLocal).length > 0) {
-            await saveDatabaseToOwnerDrive(currentLocal);
-            if (isMounted) {
-              setCloudStatus('synced');
-              setLastSyncedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+          // Cloud empty: if local data exists, push to cloud
+          if (videos && Object.keys(videos).length > 0) {
+            const pushRes = await pushStudioStateToCloud(videos, currentUser);
+            if (pushRes.success) {
+              lastSyncTimestampRef.current = pushRes.timestamp;
             }
+          }
+          if (isMounted) {
+            setCloudStatus('synced');
+            setLastSyncedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
           }
         }
       } catch (err) {
         console.warn('Initial cloud sync notice:', err.message);
-        if (isMounted) {
-          setCloudStatus('error');
-        }
+        if (isMounted) setCloudStatus('error');
+      } finally {
+        isInitialLoadDoneRef.current = true;
       }
     }
 
     initCloudSync();
 
-    return () => { isMounted = false; };
+    // Setup Active Polling: Check for collaborator updates every 8 seconds
+    const pollInterval = setInterval(async () => {
+      if (!isInitialLoadDoneRef.current) return;
+      try {
+        const cloudResult = await pullLatestStudioStateFromCloud();
+        if (cloudResult && cloudResult.videos && cloudResult.lastUpdated > (lastSyncTimestampRef.current || 0)) {
+          setVideos(prev => {
+            const merged = mergeStudioVideos(prev, cloudResult.videos);
+            lastSyncTimestampRef.current = cloudResult.lastUpdated;
+            return merged;
+          });
+          setCloudStatus('synced');
+          setLastSyncedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        }
+      } catch (e) {}
+    }, 8000);
+
+    // Sync immediately whenever user switches back to this tab/window
+    const handleVisibilityOrFocus = async () => {
+      try {
+        const cloudResult = await pullLatestStudioStateFromCloud();
+        if (cloudResult && cloudResult.videos && cloudResult.lastUpdated > (lastSyncTimestampRef.current || 0)) {
+          setVideos(prev => {
+            const merged = mergeStudioVideos(prev, cloudResult.videos);
+            lastSyncTimestampRef.current = cloudResult.lastUpdated;
+            return merged;
+          });
+          setCloudStatus('synced');
+          setLastSyncedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        }
+      } catch (e) {}
+    };
+
+    window.addEventListener('focus', handleVisibilityOrFocus);
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+
+    return () => {
+      isMounted = false;
+      clearInterval(pollInterval);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+    };
   }, []);
 
-  // Debounced Real-Time Auto-Save to Google Drive whenever changes occur
+  // Debounced Real-Time Auto-Save to Cloud whenever changes occur
   useEffect(() => {
-    if (!isOwnerDriveConfigured()) return;
+    if (!isInitialLoadDoneRef.current) return;
 
     setCloudStatus('saving');
     const timer = setTimeout(async () => {
       try {
-        await saveDatabaseToOwnerDrive(videos);
-        setCloudStatus('synced');
-        setLastSyncedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        const res = await pushStudioStateToCloud(videos, currentUser);
+        if (res.success) {
+          lastSyncTimestampRef.current = res.timestamp;
+          setCloudStatus('synced');
+          setLastSyncedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        } else {
+          setCloudStatus('error');
+        }
       } catch (err) {
-        console.warn('Auto-save to Google Drive notice:', err.message);
+        console.warn('Auto-save to Cloud notice:', err.message);
         setCloudStatus('error');
       }
-    }, 1600);
+    }, 1200);
 
     return () => clearTimeout(timer);
   }, [videos]);
 
   const forceCloudSync = async () => {
-    if (!isOwnerDriveConfigured()) {
-      addToast('Please link Google Drive in Cloud Hub first.', 'info');
-      return;
-    }
     setCloudStatus('syncing');
     try {
-      await saveDatabaseToOwnerDrive(videos);
-      setCloudStatus('synced');
-      setLastSyncedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-      addToast('Studio database synced with Google Drive!', 'success');
+      const res = await pushStudioStateToCloud(videos, currentUser);
+      if (res.success) {
+        lastSyncTimestampRef.current = res.timestamp;
+        setCloudStatus('synced');
+        setLastSyncedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        addToast('Studio database synced across all links & Google Drive!', 'success');
+      } else {
+        throw new Error('Sync returned failure');
+      }
     } catch (err) {
       setCloudStatus('error');
       addToast(`Sync error: ${err.message}`, 'error');
@@ -217,8 +245,10 @@ export function VideoProvider({ children }) {
   // ------------------ Video Operations ------------------
   const createVideo = ({ title, epLabel, logline, createdBy, cover }) => {
     const id = 'ep_' + Date.now();
+    const now = Date.now();
     const newVideo = {
       id,
+      updatedAt: now,
       epLabel: epLabel || `Episode ${Object.keys(videos).length + 1}`,
       title: title || 'Untitled Production',
       cover: cover || 'Concept art thumbnail',
@@ -280,7 +310,8 @@ export function VideoProvider({ children }) {
         ...prev,
         [id]: {
           ...prev[id],
-          ...updates
+          ...updates,
+          updatedAt: Date.now()
         }
       };
     });
@@ -316,6 +347,7 @@ export function VideoProvider({ children }) {
       ...prev,
       [videoId]: {
         ...prev[videoId],
+        updatedAt: Date.now(),
         shots: [...prev[videoId].shots, newShot]
       }
     }));
@@ -359,7 +391,13 @@ export function VideoProvider({ children }) {
 
       return {
         ...prev,
-        [videoId]: { ...target, shots, prompts: updatedPrompts, queue: updatedQueue }
+        [videoId]: {
+          ...target,
+          updatedAt: Date.now(),
+          shots,
+          prompts: updatedPrompts,
+          queue: updatedQueue
+        }
       };
     });
   };
@@ -411,6 +449,7 @@ export function VideoProvider({ children }) {
         ...prev,
         [videoId]: {
           ...target,
+          updatedAt: Date.now(),
           shots,
           prompts: updatedPrompts
         }
@@ -436,7 +475,7 @@ export function VideoProvider({ children }) {
       shots[nextIdx] = temp;
       return {
         ...prev,
-        [videoId]: { ...target, shots }
+        [videoId]: { ...target, updatedAt: Date.now(), shots }
       };
     });
   };
@@ -456,7 +495,7 @@ export function VideoProvider({ children }) {
       shots.splice(index + 1, 0, dupe);
       return {
         ...prev,
-        [videoId]: { ...target, shots }
+        [videoId]: { ...target, updatedAt: Date.now(), shots }
       };
     });
     addToast(`Duplicated shot ${index + 1}.`, 'info');
@@ -470,7 +509,7 @@ export function VideoProvider({ children }) {
       shots.splice(index, 1);
       return {
         ...prev,
-        [videoId]: { ...target, shots }
+        [videoId]: { ...target, updatedAt: Date.now(), shots }
       };
     });
     addToast('Shot removed.', 'info');
@@ -496,7 +535,7 @@ export function VideoProvider({ children }) {
       shots[shotIndex] = shot;
       return {
         ...prev,
-        [videoId]: { ...target, shots }
+        [videoId]: { ...target, updatedAt: Date.now(), shots }
       };
     });
     addToast('Comment added!', 'success');
