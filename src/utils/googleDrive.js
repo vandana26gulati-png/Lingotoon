@@ -7,11 +7,13 @@
 // Storage keys
 export const STORAGE_KEY_GDRIVE_API = 'lingotoon_owner_gdrive_api_url';
 export const STORAGE_KEY_GDRIVE_FOLDER = 'lingotoon_studio_gdrive_folder';
-export const STORAGE_KEY_GDRIVE_AUTO_UPLOAD = 'lingotoon_gdrive_auto_upload';
+// Default pre-configured Owner Google Drive Cloud Bridge
+export const DEFAULT_GDRIVE_API_URL = 'https://script.google.com/macros/s/AKfycbxI431TUlmX7rKXeBs5IOJh-Y-07tfYmKMDjVaeHtoOHRyb7Z98StawiieU8_SeIw8/exec';
+export const DEFAULT_GDRIVE_FOLDER_ID = '1iwJh3GtwDtAjUy4t1FeqBgw0b_XBmyva';
 
 /**
  * Retrieves the configured Owner Google Drive Cloud credentials and settings.
- * Checks localStorage first, with fallback to Vite environment variables.
+ * Checks localStorage first, then Vite environment variables, then pre-configured defaults.
  */
 export function getOwnerDriveConfig() {
   const envApiUrl = import.meta.env?.VITE_GDRIVE_API_URL || '';
@@ -21,8 +23,8 @@ export function getOwnerDriveConfig() {
   const storedFolder = localStorage.getItem(STORAGE_KEY_GDRIVE_FOLDER) || '';
   const autoUploadRaw = localStorage.getItem(STORAGE_KEY_GDRIVE_AUTO_UPLOAD);
 
-  const apiUrl = storedApiUrl.trim() || envApiUrl.trim();
-  const folderInput = storedFolder.trim() || envFolderId.trim();
+  const apiUrl = (storedApiUrl.trim() || envApiUrl.trim() || DEFAULT_GDRIVE_API_URL).trim();
+  const folderInput = (storedFolder.trim() || envFolderId.trim() || DEFAULT_GDRIVE_FOLDER_ID).trim();
   const folderId = extractDriveFolderId(folderInput) || folderInput;
   const autoUpload = autoUploadRaw === null ? true : autoUploadRaw === 'true';
 
@@ -93,34 +95,33 @@ export async function testOwnerDriveConnection(customApiUrl = null) {
 }
 
 /**
- * Uploads an image file or base64 data to the studio owner's Google Drive folder.
- * Consumes the owner's TBs storage and returns a high-resolution direct embed link.
+ * Uploads ANY file (image, script, audio, archive, etc.) to the studio Google Drive folder.
  * 
- * @param {File|Blob|string} imageFileOrBase64 - File object or data:image/... string
+ * @param {File|Blob|string} fileOrBase64 - File object or data string
  * @param {string} [customFileName] - Optional file name
- * @returns {Promise<{success: boolean, directUrl: string, fileId: string, webViewLink: string}>}
+ * @param {string} [customMimeType] - Optional mime type
+ * @returns {Promise<{success: boolean, directUrl: string, fileId: string, webViewLink: string, fileName: string}>}
  */
-export async function uploadImageToOwnerDrive(imageFileOrBase64, customFileName = null) {
+export async function uploadFileToOwnerDrive(fileOrBase64, customFileName = null, customMimeType = null) {
   const config = getOwnerDriveConfig();
   if (!config.isConfigured) {
-    throw new Error('Owner Google Drive is not configured. Please set the Web App URL and Folder ID in Cloud Settings.');
+    throw new Error('Google Drive Cloud Bridge is not configured.');
   }
 
   let base64Data = '';
-  let mimeType = 'image/png';
-  let fileName = customFileName || `lingotoon_frame_${Date.now()}.png`;
+  let mimeType = customMimeType || 'application/octet-stream';
+  let fileName = customFileName || `lingotoon_file_${Date.now()}`;
 
-  if (typeof imageFileOrBase64 === 'string') {
-    // Already a data URL
-    base64Data = imageFileOrBase64;
-    const mimeMatch = imageFileOrBase64.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,/);
+  if (typeof fileOrBase64 === 'string') {
+    base64Data = fileOrBase64;
+    const mimeMatch = fileOrBase64.match(/data:([a-zA-Z0-9-+/.]+);base64,/);
     if (mimeMatch) mimeType = mimeMatch[1];
-  } else if (imageFileOrBase64 instanceof Blob || imageFileOrBase64 instanceof File) {
-    mimeType = imageFileOrBase64.type || 'image/png';
-    fileName = customFileName || imageFileOrBase64.name || fileName;
-    base64Data = await fileToBase64(imageFileOrBase64);
+  } else if (fileOrBase64 instanceof Blob || fileOrBase64 instanceof File) {
+    mimeType = fileOrBase64.type || mimeType;
+    fileName = customFileName || fileOrBase64.name || fileName;
+    base64Data = await fileToBase64(fileOrBase64);
   } else {
-    throw new Error('Invalid image data provided for upload');
+    throw new Error('Invalid file data provided for upload');
   }
 
   const payload = {
@@ -131,7 +132,6 @@ export async function uploadImageToOwnerDrive(imageFileOrBase64, customFileName 
     data: base64Data
   };
 
-  // Use text/plain to avoid CORS preflight OPTIONS rejection in Google Apps Script
   const response = await fetch(config.apiUrl, {
     method: 'POST',
     headers: {
@@ -146,7 +146,7 @@ export async function uploadImageToOwnerDrive(imageFileOrBase64, customFileName 
 
   const result = await response.json();
   if (!result.success) {
-    throw new Error(result.error || 'Failed to upload image to Google Drive');
+    throw new Error(result.error || 'Failed to upload file to Google Drive');
   }
 
   return {
@@ -156,6 +156,20 @@ export async function uploadImageToOwnerDrive(imageFileOrBase64, customFileName 
     webViewLink: result.webViewLink,
     fileName: result.fileName
   };
+}
+
+/**
+ * Uploads an image file or base64 data to the studio Google Drive folder.
+ */
+export async function uploadImageToOwnerDrive(imageFileOrBase64, customFileName = null) {
+  let fileName = customFileName;
+  if (!fileName && imageFileOrBase64 instanceof File) {
+    fileName = imageFileOrBase64.name;
+  }
+  if (!fileName) {
+    fileName = `lingotoon_frame_${Date.now()}.png`;
+  }
+  return uploadFileToOwnerDrive(imageFileOrBase64, fileName, 'image/png');
 }
 
 /**

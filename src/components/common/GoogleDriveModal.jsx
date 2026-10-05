@@ -9,7 +9,8 @@ import {
   testOwnerDriveConnection,
   saveDatabaseToOwnerDrive,
   fetchDatabaseFromOwnerDrive,
-  extractDriveFolderId
+  extractDriveFolderId,
+  uploadFileToOwnerDrive
 } from '../../utils/googleDrive';
 import {
   ExternalLink,
@@ -134,9 +135,31 @@ export default function GoogleDriveModal({ isOpen, onClose }) {
   const [copiedScript, setCopiedScript] = useState(false);
   const [copiedFolder, setCopiedFolder] = useState(false);
 
+  // Direct file uploader states
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const [uploadedFilesList, setUploadedFilesList] = useState([]);
+
   // Legacy/Manual import
   const [importUrl, setImportUrl] = useState('');
   const [isImporting, setIsImporting] = useState(false);
+
+  const handleUploadFileToDrive = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingFile(true);
+    try {
+      const res = await uploadFileToOwnerDrive(file, file.name, file.type);
+      setUploadedFilesList(prev => [res, ...prev]);
+      addToast(`"${file.name}" uploaded to Google Drive!`, 'success');
+    } catch (err) {
+      console.error(err);
+      addToast(`Upload failed: ${err.message}`, 'error');
+    } finally {
+      setIsUploadingFile(false);
+      e.target.value = '';
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -424,6 +447,119 @@ export default function GoogleDriveModal({ isOpen, onClose }) {
                 </button>
               </div>
             </form>
+
+            {/* Direct File Uploader to Google Drive Folder */}
+            <div style={{ background: '#f5f3ff', border: '1.5px dashed #a855f7', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--grape)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <UploadCloud className="w-4 h-4 text-purple-600" />
+                  <span>Upload Any File to Linked Google Drive Folder</span>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  style={{ fontSize: '11px', padding: '3px 8px' }}
+                  onClick={handleOpenFolder}
+                  title="Open folder directly in Google Drive"
+                >
+                  <ExternalLink className="w-3 h-3 mr-1" />
+                  Open in Google Drive ↗
+                </button>
+              </div>
+              <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', margin: '0 0 12px 0' }}>
+                All files uploaded here are saved directly into your Google Drive folder (<code>{folderInput || '1iwJh3GtwDtAjUy4t1FeqBgw0b_XBmyva'}</code>).
+              </p>
+
+              <label
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '20px',
+                  background: '#ffffff',
+                  border: '1px dashed #c4b5fd',
+                  borderRadius: 'var(--radius-sm)',
+                  cursor: isUploadingFile ? 'not-allowed' : 'pointer',
+                  textAlign: 'center',
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 2px 6px rgba(109, 40, 217, 0.05)'
+                }}
+              >
+                <input
+                  type="file"
+                  style={{ display: 'none' }}
+                  onChange={handleUploadFileToDrive}
+                  disabled={isUploadingFile}
+                />
+                {isUploadingFile ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--grape)', fontWeight: 700, fontSize: '12px' }}>
+                    <Loader2 className="w-4 h-4 animate-spin text-purple-600" />
+                    <span>Uploading file directly to Google Drive...</span>
+                  </div>
+                ) : (
+                  <>
+                    <UploadCloud className="w-7 h-7 text-purple-600 mb-1.5" />
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-bright)' }}>
+                      Click or drag & drop ANY file here to upload to Google Drive
+                    </span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      Images (.png, .jpg), Audio (.mp3, .wav), Scripts (.txt, .pdf), or Backups (.json, .csv)
+                    </span>
+                  </>
+                )}
+              </label>
+
+              {/* Uploaded Files History */}
+              {uploadedFilesList.length > 0 && (
+                <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-bright)' }}>
+                    Uploaded Files in this Session:
+                  </span>
+                  {uploadedFilesList.map((f, i) => (
+                    <div
+                      key={f.fileId || i}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '6px 12px',
+                        background: '#ffffff',
+                        border: '1px solid #e9d5ff',
+                        borderRadius: '6px',
+                        fontSize: '11.5px'
+                      }}
+                    >
+                      <span style={{ fontWeight: 600, color: 'var(--text-bright)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '230px' }}>
+                        📄 {f.fileName}
+                      </span>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <a
+                          href={f.webViewLink || f.directUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-ghost btn-sm"
+                          style={{ fontSize: '10.5px', padding: '2px 8px' }}
+                        >
+                          <ExternalLink className="w-3 h-3 mr-1" /> View in Drive
+                        </a>
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          style={{ fontSize: '10.5px', padding: '2px 8px' }}
+                          onClick={() => {
+                            navigator.clipboard.writeText(f.directUrl || f.webViewLink);
+                            addToast('Link copied to clipboard!', 'info');
+                          }}
+                        >
+                          <Copy className="w-3 h-3 mr-1" /> Copy Link
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Cloud Database Actions */}
             {isConfigured && (

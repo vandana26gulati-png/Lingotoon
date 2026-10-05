@@ -1,11 +1,12 @@
 import React from 'react';
 import { useVideo } from '../../context/VideoContext';
 import { HardDrive, CheckCircle2, Loader2, AlertCircle, RefreshCw, ExternalLink } from 'lucide-react';
-import { formatDriveFolderUrl } from '../../utils/googleDrive';
+import { formatDriveFolderUrl, getOwnerDriveConfig } from '../../utils/googleDrive';
 
 export default function CloudSyncStatus() {
   const { cloudStatus, lastSyncedTime, forceCloudSync } = useVideo();
-  const folderId = localStorage.getItem('lingotoon_studio_gdrive_folder') || '';
+  const driveConfig = getOwnerDriveConfig();
+  const folderId = driveConfig.folderId;
 
   const getStatusContent = () => {
     switch (cloudStatus) {
