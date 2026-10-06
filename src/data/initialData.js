@@ -46,5 +46,52 @@ export const TOOL_OPTIONS = [
   { name: "Midjourney v6", defaultCost: 40 }
 ];
 
-// Clean slate: all default mock entries removed
-export const INITIAL_VIDEOS = {};
+// Restored Studio Projects
+export const INITIAL_VIDEOS = {
+  "ep_collab_test": {
+    "id": "ep_collab_test",
+    "title": "Realtime Multi-User Studio Active!",
+    "status": "review",
+    "createdBy": "Director (Client A)",
+    "updatedAt": 1791261865017,
+    "shots": [
+      {
+        "id": "s1",
+        "desc": "Opening shot edited by collaborator A",
+        "camera": "Wide shot",
+        "duration": "5s",
+        "comments": []
+      },
+      {
+        "id": "s2",
+        "desc": "Shot 2 added by Animator B on their phone",
+        "camera": "Close-up",
+        "duration": "4s",
+        "comments": []
+      }
+    ]
+  },
+  "v_magic_mountain": {
+    "id": "v_magic_mountain",
+    "title": "Collab Episode 1: The Magic Mountain",
+    "updatedAt": 1791261890770,
+    "shots": [
+      {
+        "id": "s1",
+        "desc": "Once upon a time in the emerald forest...",
+        "script": "Once upon a time in the emerald forest...",
+        "camera": "Wide shot",
+        "duration": "4s",
+        "comments": []
+      },
+      {
+        "id": "s2",
+        "desc": "A magical toon appeared!",
+        "script": "A magical toon appeared!",
+        "camera": "Close-up",
+        "duration": "4s",
+        "comments": []
+      }
+    ]
+  }
+};
