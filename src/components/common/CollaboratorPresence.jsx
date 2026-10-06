@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useVideo } from '../../context/VideoContext';
 import { Users, User, Shield, Check, Edit2, ChevronDown, Circle } from 'lucide-react';
+import { syncCollaboratorPresenceToCloud, fetchCollaboratorPresenceFromCloud } from '../../utils/cloudSync';
 
 const PRESET_ROLES = [
   'Director',
@@ -34,12 +35,13 @@ export default function CollaboratorPresence() {
   const popoverRef = useRef(null);
   const currentScenarioTitle = videos?.[currentVideoId]?.title || 'Main Studio Dashboard';
 
-  // Heartbeat & presence broadcaster via BroadcastChannel + localStorage
+  // Heartbeat & presence broadcaster via Firestore + BroadcastChannel + localStorage
   useEffect(() => {
+    let isMounted = true;
     const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('lingotoon_presence') : null;
     const STORAGE_PRESENCE_KEY = 'lingotoon_active_collaborators';
 
-    const sendHeartbeat = () => {
+    const sendHeartbeat = async () => {
       const myPresence = {
         id: currentUser.id,
         name: currentUser.name,
@@ -51,7 +53,7 @@ export default function CollaboratorPresence() {
       };
 
       try {
-        // Read existing and prune stale (> 45s)
+        // 1. Local tab & same-machine sync
         const raw = localStorage.getItem(STORAGE_PRESENCE_KEY);
         let list = raw ? JSON.parse(raw) : [];
         if (!Array.isArray(list)) list = [];
@@ -61,10 +63,16 @@ export default function CollaboratorPresence() {
         list.push(myPresence);
         
         localStorage.setItem(STORAGE_PRESENCE_KEY, JSON.stringify(list));
-        setCollaborators(list);
+        if (isMounted) setCollaborators(list);
 
         if (channel) {
           channel.postMessage({ type: 'HEARTBEAT', presence: myPresence });
+        }
+
+        // 2. Global Cloud Sync across all team devices & remote managers
+        const cloudList = await syncCollaboratorPresenceToCloud(myPresence);
+        if (cloudList && Array.isArray(cloudList) && isMounted) {
+          setCollaborators(cloudList);
         }
       } catch (e) {
         console.warn('Presence sync notice:', e);
@@ -73,7 +81,7 @@ export default function CollaboratorPresence() {
 
     // Send immediately on mount or profile change
     sendHeartbeat();
-    const interval = setInterval(sendHeartbeat, 12000);
+    const interval = setInterval(sendHeartbeat, 15000);
 
     // Listen on BroadcastChannel
     const handleMessage = (event) => {

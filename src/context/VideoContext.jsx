@@ -150,6 +150,9 @@ export function VideoProvider({ children }) {
           });
           setCloudStatus('synced');
           setLastSyncedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+          if (cloudResult.updatedBy && cloudResult.updatedBy !== currentUser.name) {
+            addToast(`✨ ${cloudResult.updatedBy} synced updates!`, 'info');
+          }
         }
       } catch (e) {}
     }, 8000);
@@ -356,8 +359,9 @@ export function VideoProvider({ children }) {
   // ------------------ Storyboard Operations ------------------
   const addShot = (videoId) => {
     const shotNum = (videos[videoId]?.shots.length || 0) + 1;
+    const now = Date.now();
     const newShot = {
-      id: 's_' + Date.now() + Math.random().toString(36).substr(2, 4),
+      id: 's_' + now + Math.random().toString(36).substr(2, 4),
       desc: `Shot ${shotNum} — describe action, camera blocking, and lighting.`,
       camera: 'Wide shot',
       chars: '',
@@ -365,14 +369,15 @@ export function VideoProvider({ children }) {
       status: 'draft',
       rec: '',
       recReason: '',
-      pic: null
+      pic: null,
+      updatedAt: now
     };
 
     setVideos(prev => ({
       ...prev,
       [videoId]: {
         ...prev[videoId],
-        updatedAt: Date.now(),
+        updatedAt: now,
         shots: [...prev[videoId].shots, newShot]
       }
     }));
@@ -392,7 +397,8 @@ export function VideoProvider({ children }) {
       if ('pic' in updates && !('image' in updates)) updates.image = updates.pic;
       if ('image' in updates && !('pic' in updates)) updates.pic = updates.image;
 
-      const updatedShot = { ...shots[index], ...updates };
+      const now = Date.now();
+      const updatedShot = { ...shots[index], ...updates, updatedAt: now };
       shots[index] = updatedShot;
 
       // Automatically sync compiled prompt if one exists
@@ -552,11 +558,12 @@ export function VideoProvider({ children }) {
     setVideos(prev => {
       const target = prev[videoId];
       if (!target) return prev;
+      const now = Date.now();
       const shots = [...target.shots];
-      const shot = { ...shots[shotIndex] };
+      const shot = { ...shots[shotIndex], updatedAt: now };
       const existingComments = shot.comments || [];
       const newComment = {
-        id: 'cmt_' + Date.now() + Math.random().toString(36).substr(2, 4),
+        id: 'cmt_' + now + Math.random().toString(36).substr(2, 4),
         text: text.trim(),
         author: author || currentUser.name,
         authorRole: authorRole || currentUser.role,
@@ -568,7 +575,7 @@ export function VideoProvider({ children }) {
       shots[shotIndex] = shot;
       return {
         ...prev,
-        [videoId]: { ...target, updatedAt: Date.now(), shots }
+        [videoId]: { ...target, updatedAt: now, shots }
       };
     });
     addToast('Comment added!', 'success');
@@ -578,15 +585,16 @@ export function VideoProvider({ children }) {
     setVideos(prev => {
       const target = prev[videoId];
       if (!target) return prev;
+      const now = Date.now();
       const shots = [...target.shots];
-      const shot = { ...shots[shotIndex] };
+      const shot = { ...shots[shotIndex], updatedAt: now };
       shot.comments = (shot.comments || []).filter(c => c.id !== commentId);
       shots[shotIndex] = shot;
       return {
         ...prev,
         [videoId]: {
           ...target,
-          updatedAt: Date.now(),
+          updatedAt: now,
           shots
         }
       };
@@ -598,8 +606,9 @@ export function VideoProvider({ children }) {
     setVideos(prev => {
       const target = prev[videoId];
       if (!target) return prev;
+      const now = Date.now();
       const shots = [...target.shots];
-      const shot = { ...shots[shotIndex] };
+      const shot = { ...shots[shotIndex], updatedAt: now };
       shot.comments = (shot.comments || []).map(c => {
         if (c.id === commentId) {
           return { ...c, resolved: !c.resolved };
@@ -611,7 +620,7 @@ export function VideoProvider({ children }) {
         ...prev,
         [videoId]: {
           ...target,
-          updatedAt: Date.now(),
+          updatedAt: now,
           shots
         }
       };

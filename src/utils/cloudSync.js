@@ -117,9 +117,11 @@ export async function pullLatestStudioStateFromCloud() {
       if (json.fields && json.fields.data && json.fields.data.stringValue) {
         const parsed = JSON.parse(json.fields.data.stringValue);
         const lastUpdated = parseInt(json.fields.updatedAt?.integerValue || '0', 10) || parsed._lastUpdated || 0;
+        const updatedBy = json.fields.updatedBy?.stringValue || 'Studio Collaborator';
         return {
           videos: parsed,
           lastUpdated: lastUpdated || 1,
+          updatedBy,
           source: 'google_cloud_firestore'
         };
       }
@@ -225,8 +227,13 @@ export function mergeStudioVideos(localVideos = {}, cloudVideos = {}) {
         }
       }
 
-      // If cloud is newer, cloud fields win, otherwise local
-      const shotBase = cloudUpdated >= localUpdated
+      const localShotUpdated = Number(sLocal.updatedAt) || localUpdated;
+      const cloudShotUpdated = Number(sCloud.updatedAt) || cloudUpdated;
+
+      // Granular per-shot conflict resolution:
+      // If this individual shot was modified more recently on cloud, cloud shot wins.
+      // If this shot was modified more recently locally, local shot wins!
+      const shotBase = cloudShotUpdated >= localShotUpdated
         ? { ...sLocal, ...sCloud }
         : { ...sCloud, ...sLocal };
 
@@ -248,3 +255,58 @@ export function mergeStudioVideos(localVideos = {}, cloudVideos = {}) {
 
   return merged;
 }
+
+const FIRESTORE_PRESENCE_URL = `https://firestore.googleapis.com/v1/projects/${FIRESTORE_PROJECT_ID}/databases/(default)/documents/lingotoon_studio/presence?key=${FIRESTORE_API_KEY}`;
+
+/**
+ * Pushes active user heartbeat to Global Firestore Presence
+ */
+export async function syncCollaboratorPresenceToCloud(myPresence) {
+  try {
+    // 1. Fetch current presence list
+    const res = await fetch(`${FIRESTORE_PRESENCE_URL}&t=${Date.now()}`);
+    let list = [];
+    if (res.ok) {
+      const json = await res.json();
+      list = JSON.parse(json.fields?.list?.stringValue || '[]');
+    }
+
+    const now = Date.now();
+    // Prune stale presences older than 50 seconds
+    list = list.filter(u => u.id !== myPresence.id && (now - (u.lastActive || 0) < 50000));
+    list.push({ ...myPresence, lastActive: now });
+
+    // Write back updated list
+    await fetch(FIRESTORE_PRESENCE_URL, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fields: {
+          updatedAt: { integerValue: String(now) },
+          list: { stringValue: JSON.stringify(list) }
+        }
+      })
+    });
+
+    return list;
+  } catch (err) {
+    return [myPresence];
+  }
+}
+
+/**
+ * Fetches active collaborators currently online across the organization
+ */
+export async function fetchCollaboratorPresenceFromCloud() {
+  try {
+    const res = await fetch(`${FIRESTORE_PRESENCE_URL}&t=${Date.now()}`);
+    if (!res.ok) return [];
+    const json = await res.json();
+    const list = JSON.parse(json.fields?.list?.stringValue || '[]');
+    const now = Date.now();
+    return list.filter(u => (now - (u.lastActive || 0) < 50000));
+  } catch (err) {
+    return [];
+  }
+}
+
