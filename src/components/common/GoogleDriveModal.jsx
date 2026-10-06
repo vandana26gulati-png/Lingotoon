@@ -10,6 +10,7 @@ import {
   saveDatabaseToOwnerDrive,
   fetchDatabaseFromOwnerDrive,
   extractDriveFolderId,
+  extractDriveApiUrl,
   uploadFileToOwnerDrive
 } from '../../utils/googleDrive';
 import {
@@ -269,9 +270,11 @@ export default function GoogleDriveModal({ isOpen, onClose }) {
 
   const handleSaveConfig = (e) => {
     e?.preventDefault();
+    const cleanApiUrl = extractDriveApiUrl(apiUrl) || apiUrl.trim();
+    setApiUrl(cleanApiUrl);
     const cleanFolderId = extractDriveFolderId(folderInput) || folderInput.trim();
     setOwnerDriveConfig({
-      apiUrl: apiUrl.trim(),
+      apiUrl: cleanApiUrl,
       folderId: cleanFolderId,
       autoUpload
     });
@@ -279,7 +282,11 @@ export default function GoogleDriveModal({ isOpen, onClose }) {
   };
 
   const handleTestConnection = async () => {
-    if (!apiUrl.trim()) {
+    const cleanUrl = extractDriveApiUrl(apiUrl) || apiUrl.trim();
+    if (cleanUrl !== apiUrl) {
+      setApiUrl(cleanUrl);
+    }
+    if (!cleanUrl) {
       addToast('Please enter your Google Apps Script Web App URL first', 'error');
       return;
     }
@@ -287,10 +294,10 @@ export default function GoogleDriveModal({ isOpen, onClose }) {
     setTestingConnection(true);
     setConnectionStatus(null);
     try {
-      const res = await testOwnerDriveConnection(apiUrl.trim());
+      const res = await testOwnerDriveConnection(cleanUrl);
       if (res.success) {
-        setConnectionStatus({ success: true, msg: 'Connected successfully! TBs Storage Host Active.' });
-        addToast('Connected to your Google Drive Cloud Host!', 'success');
+        setConnectionStatus({ success: true, msg: res.message || 'Connected successfully! TBs Storage Host Active.' });
+        addToast(res.message || 'Connected to your Google Drive Cloud Host!', 'success');
       } else {
         setConnectionStatus({ success: false, msg: res.error || 'Connection failed' });
       }
@@ -544,7 +551,15 @@ export default function GoogleDriveModal({ isOpen, onClose }) {
                   type="text"
                   placeholder="https://script.google.com/macros/s/AKfycb.../exec"
                   value={apiUrl}
-                  onChange={(e) => setApiUrl(e.target.value)}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    const clean = extractDriveApiUrl(raw);
+                    setApiUrl(clean && clean.startsWith('https://') ? clean : raw);
+                  }}
+                  onBlur={() => {
+                    const clean = extractDriveApiUrl(apiUrl);
+                    if (clean) setApiUrl(clean);
+                  }}
                   style={{ fontSize: '12.5px', fontFamily: 'var(--font-mono)' }}
                 />
                 <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: '2px', display: 'block' }}>
@@ -558,7 +573,15 @@ export default function GoogleDriveModal({ isOpen, onClose }) {
                   type="text"
                   placeholder="1A2b3C4d5E... or https://drive.google.com/drive/folders/..."
                   value={folderInput}
-                  onChange={(e) => setFolderInput(e.target.value)}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    const clean = extractDriveFolderId(raw);
+                    setFolderInput(clean || raw);
+                  }}
+                  onBlur={() => {
+                    const clean = extractDriveFolderId(folderInput);
+                    if (clean) setFolderInput(clean);
+                  }}
                   style={{ fontSize: '12.5px' }}
                 />
                 <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: '2px', display: 'block' }}>

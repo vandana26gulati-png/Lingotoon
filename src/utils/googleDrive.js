@@ -13,6 +13,19 @@ export const DEFAULT_GDRIVE_API_URL = 'https://script.google.com/macros/s/AKfycb
 export const DEFAULT_GDRIVE_FOLDER_ID = '1iwJh3GtwDtAjUy4t1FeqBgw0b_XBmyva';
 
 /**
+ * Extracts a Google Apps Script Web App URL from text or dirty paste:
+ * e.g. "web app link https://script.google.com/macros/s/AKfycb.../exec" -> "https://script.google.com/macros/s/AKfycb.../exec"
+ */
+export function extractDriveApiUrl(str) {
+  if (!str || typeof str !== 'string') return '';
+  const match = str.match(/https:\/\/script\.google\.com\/macros\/s\/[a-zA-Z0-9_-]+\/exec/);
+  if (match) return match[0];
+  const urlMatch = str.match(/https?:\/\/[^\s"'<>]+/);
+  if (urlMatch) return urlMatch[0];
+  return str.trim();
+}
+
+/**
  * Retrieves the configured Owner Google Drive Cloud credentials and settings.
  * Checks localStorage first, then Vite environment variables, then pre-configured defaults.
  */
@@ -24,7 +37,8 @@ export function getOwnerDriveConfig() {
   const storedFolder = localStorage.getItem(STORAGE_KEY_GDRIVE_FOLDER) || '';
   const autoUploadRaw = localStorage.getItem(STORAGE_KEY_GDRIVE_AUTO_UPLOAD);
 
-  const apiUrl = (storedApiUrl.trim() || envApiUrl.trim() || DEFAULT_GDRIVE_API_URL).trim();
+  const rawApiUrl = (storedApiUrl.trim() || envApiUrl.trim() || DEFAULT_GDRIVE_API_URL).trim();
+  const apiUrl = extractDriveApiUrl(rawApiUrl);
   const folderInput = (storedFolder.trim() || envFolderId.trim() || DEFAULT_GDRIVE_FOLDER_ID).trim();
   const folderId = extractDriveFolderId(folderInput) || folderInput;
   const autoUpload = autoUploadRaw === null ? true : autoUploadRaw === 'true';
@@ -43,7 +57,7 @@ export function getOwnerDriveConfig() {
  */
 export function setOwnerDriveConfig({ apiUrl, folderId, autoUpload }) {
   if (apiUrl !== undefined) {
-    localStorage.setItem(STORAGE_KEY_GDRIVE_API, apiUrl.trim());
+    localStorage.setItem(STORAGE_KEY_GDRIVE_API, extractDriveApiUrl(apiUrl));
   }
   if (folderId !== undefined) {
     localStorage.setItem(STORAGE_KEY_GDRIVE_FOLDER, folderId.trim());
@@ -65,7 +79,8 @@ export function isOwnerDriveConfigured() {
  * Tests connection to the Owner Google Drive Apps Script Bridge
  */
 export async function testOwnerDriveConnection(customApiUrl = null) {
-  const apiUrl = customApiUrl || getOwnerDriveConfig().apiUrl;
+  const rawUrl = customApiUrl || getOwnerDriveConfig().apiUrl;
+  const apiUrl = extractDriveApiUrl(rawUrl);
   if (!apiUrl) {
     return { success: false, error: 'No Google Drive Web App URL specified' };
   }
