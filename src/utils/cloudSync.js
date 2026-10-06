@@ -13,7 +13,7 @@ import {
   saveDatabaseToOwnerDrive,
   fetchDatabaseFromOwnerDrive,
   isOwnerDriveConfigured
-} from './googleDrive';
+} from './googleDrive.js';
 
 const FIRESTORE_API_KEY = 'AIzaSyDtOKQKyXG8MXb_lJclUdZixjHV_Ed41fg';
 const FIRESTORE_PROJECT_ID = 'game-43959';
