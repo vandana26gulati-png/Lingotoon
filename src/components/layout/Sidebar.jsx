@@ -3,10 +3,10 @@ import { useVideo } from '../../context/VideoContext';
 import GoogleDriveModal from '../common/GoogleDriveModal';
 import CloudSyncStatus from '../common/CloudSyncStatus';
 import CollaboratorPresence from '../common/CollaboratorPresence';
-import { Film, Coins, Sparkles, RotateCcw, Download, Layers, HardDrive } from 'lucide-react';
+import { Film, Coins, Sparkles, RotateCcw, Download, Upload, Layers, HardDrive } from 'lucide-react';
 
 export default function Sidebar() {
-  const { topView, setTopView, resetToDemoData, exportDataAsJSON, videos } = useVideo();
+  const { topView, setTopView, resetToDemoData, exportDataAsJSON, importDataFromJSON, videos } = useVideo();
   const [isDriveModalOpen, setIsDriveModalOpen] = useState(false);
 
   const totalVideos = Object.keys(videos || {}).length;
@@ -87,6 +87,27 @@ export default function Sidebar() {
           <Download className="w-3.5 h-3.5" />
           Export Data JSON
         </button>
+
+        <label
+          className="btn btn-ghost btn-sm"
+          style={{ width: '100%', fontSize: '11px', justifyContent: 'flex-start', cursor: 'pointer', margin: 0 }}
+          title="Upload and restore a project database from a JSON file"
+        >
+          <Upload className="w-3.5 h-3.5 text-purple-400" />
+          <span>Import JSON File</span>
+          <input
+            type="file"
+            accept=".json,application/json"
+            style={{ display: 'none' }}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                importDataFromJSON(file);
+                e.target.value = '';
+              }
+            }}
+          />
+        </label>
 
         <button
           className="btn btn-ghost btn-sm"

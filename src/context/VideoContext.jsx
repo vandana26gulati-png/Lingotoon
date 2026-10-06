@@ -913,6 +913,39 @@ export function VideoProvider({ children }) {
     addToast('Exported studio database to JSON file.', 'success');
   };
 
+  const importDataFromJSON = async (fileOrJson) => {
+    try {
+      let parsed = null;
+      if (typeof fileOrJson === 'string') {
+        parsed = JSON.parse(fileOrJson);
+      } else if (fileOrJson instanceof File || fileOrJson instanceof Blob) {
+        const text = await fileOrJson.text();
+        parsed = JSON.parse(text);
+      }
+      
+      if (!parsed || typeof parsed !== 'object') {
+        throw new Error('Invalid JSON file format');
+      }
+
+      const incomingVideos = (parsed.videos && typeof parsed.videos === 'object') ? parsed.videos : parsed;
+      
+      setVideos(prev => {
+        const merged = mergeStudioVideos(prev, incomingVideos);
+        return merged;
+      });
+
+      // Sync to cloud
+      pushStudioStateToCloud(incomingVideos, currentUser).catch(() => {});
+
+      addToast('JSON database successfully imported & synced to cloud!', 'success');
+      return true;
+    } catch (err) {
+      console.error(err);
+      addToast(`JSON Import failed: ${err.message}`, 'error');
+      return false;
+    }
+  };
+
   return (
     <VideoContext.Provider
       value={{
@@ -950,6 +983,7 @@ export function VideoProvider({ children }) {
         deleteAsset,
         resetToDemoData,
         exportDataAsJSON,
+        importDataFromJSON,
         cloudStatus,
         lastSyncedTime,
         forceCloudSync,

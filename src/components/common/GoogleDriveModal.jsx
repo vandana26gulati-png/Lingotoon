@@ -212,7 +212,7 @@ function jsonResponse(data, statusCode) {
 }`;
 
 export default function GoogleDriveModal({ isOpen, onClose }) {
-  const { videos, exportDataAsJSON, addToast } = useVideo();
+  const { videos, exportDataAsJSON, importDataFromJSON, addToast } = useVideo();
 
   const [activeTab, setActiveTab] = useState('cloud_host'); // 'cloud_host' | 'browser'
   
@@ -857,6 +857,33 @@ export default function GoogleDriveModal({ isOpen, onClose }) {
                 <Download className="w-3.5 h-3.5 mr-1" />
                 Download lingotoon-database.json
               </button>
+            </div>
+
+            {/* Upload & Restore JSON Database */}
+            <div style={{ border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', padding: '16px', background: '#faf5ff' }}>
+              <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--grape)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <UploadCloud className="w-4 h-4 text-purple-600" />
+                <span>Upload & Restore Database (JSON)</span>
+              </div>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                Upload an existing JSON file to restore and sync all projects into Lingotoon:
+              </p>
+              <label className="btn btn-primary btn-sm" style={{ fontSize: '12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <UploadCloud className="w-3.5 h-3.5" />
+                <span>Select & Upload JSON File</span>
+                <input
+                  type="file"
+                  accept=".json,application/json"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      importDataFromJSON(file);
+                      e.target.value = '';
+                    }
+                  }}
+                />
+              </label>
             </div>
 
             {/* Manual Sync from File Link */}
