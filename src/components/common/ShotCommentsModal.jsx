@@ -80,9 +80,9 @@ export default function ShotCommentsModal({
             borderRadius: 'var(--radius-md)'
           }}
         >
-          {shot.image ? (
+          {(shot.pic || shot.image || shot.thumb) ? (
             <img
-              src={shot.image}
+              src={shot.pic || shot.image || shot.thumb}
               alt={`Scene ${sceneNum}`}
               style={{ width: '60px', height: '40px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--line)' }}
             />

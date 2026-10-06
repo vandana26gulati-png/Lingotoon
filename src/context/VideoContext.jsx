@@ -136,7 +136,7 @@ export function VideoProvider({ children }) {
 
     initCloudSync();
 
-    // Setup Active Polling: Check for collaborator updates every 12 seconds when tab is active
+    // Setup Active Polling: Check for collaborator updates every 8 seconds when tab is active
     const pollInterval = setInterval(async () => {
       if (!isInitialLoadDoneRef.current) return;
       if (typeof document !== 'undefined' && document.hidden) return;
@@ -152,7 +152,7 @@ export function VideoProvider({ children }) {
           setLastSyncedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
         }
       } catch (e) {}
-    }, 12000);
+    }, 8000);
 
     // Sync immediately whenever user switches back to this tab/window
     const handleVisibilityOrFocus = async () => {
@@ -170,12 +170,36 @@ export function VideoProvider({ children }) {
       } catch (e) {}
     };
 
+    // Immediate real-time sync across multiple tabs on the same computer
+    let bc = null;
+    try {
+      if (typeof window !== 'undefined' && typeof BroadcastChannel !== 'undefined') {
+        bc = new BroadcastChannel('lingotoon_global_sync_bus');
+        bc.onmessage = async (ev) => {
+          if (ev.data?.type === 'STUDIO_STATE_UPDATED' && isMounted) {
+            try {
+              const cloudResult = await pullLatestStudioStateFromCloud();
+              if (cloudResult && cloudResult.videos) {
+                setVideos(prev => mergeStudioVideos(prev, cloudResult.videos));
+                lastSyncTimestampRef.current = cloudResult.lastUpdated;
+                setCloudStatus('synced');
+                setLastSyncedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+              }
+            } catch (e) {}
+          }
+        };
+      }
+    } catch (e) {}
+
     window.addEventListener('focus', handleVisibilityOrFocus);
     document.addEventListener('visibilitychange', handleVisibilityOrFocus);
 
     return () => {
       isMounted = false;
       clearInterval(pollInterval);
+      if (bc) {
+        try { bc.close(); } catch (e) {}
+      }
       window.removeEventListener('focus', handleVisibilityOrFocus);
       document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
     };
@@ -355,11 +379,19 @@ export function VideoProvider({ children }) {
     addToast(`Shot ${shotNum} added to storyboard.`, 'info');
   };
 
-  const updateShot = (videoId, index, updates) => {
+  const updateShot = (videoId, index, updatesOrField, maybeVal) => {
     setVideos(prev => {
       const target = prev[videoId];
       if (!target) return prev;
       const shots = [...target.shots];
+      const updates = typeof updatesOrField === 'string'
+        ? { [updatesOrField]: maybeVal }
+        : (updatesOrField || {});
+
+      // Keep pic and image in sync so both storyboard views and table views work identically
+      if ('pic' in updates && !('image' in updates)) updates.image = updates.pic;
+      if ('image' in updates && !('pic' in updates)) updates.pic = updates.image;
+
       const updatedShot = { ...shots[index], ...updates };
       shots[index] = updatedShot;
 
@@ -552,7 +584,11 @@ export function VideoProvider({ children }) {
       shots[shotIndex] = shot;
       return {
         ...prev,
-        [videoId]: { ...target, shots }
+        [videoId]: {
+          ...target,
+          updatedAt: Date.now(),
+          shots
+        }
       };
     });
     addToast('Comment removed.', 'info');
@@ -573,7 +609,11 @@ export function VideoProvider({ children }) {
       shots[shotIndex] = shot;
       return {
         ...prev,
-        [videoId]: { ...target, shots }
+        [videoId]: {
+          ...target,
+          updatedAt: Date.now(),
+          shots
+        }
       };
     });
   };

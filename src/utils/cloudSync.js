@@ -3,10 +3,10 @@
  * for Lingotoon Animation Studio.
  * 
  * Provides:
- * 1. Global Zero-Config Cloud Sync via Studio Owner's Google Cloud Bridge
- * 2. Automatic dual persistence: Google Drive Folder + Script Properties Datastore
+ * 1. Global Zero-Config Cloud Sync via Google Firebase / Firestore Datastore (instant, reliable, zero OAuth popup)
+ * 2. Automatic dual persistence: Google Cloud Firestore + Google Drive Folder Backup
  * 3. Cross-tab and cross-device realtime synchronization
- * 4. Conflict-free timestamped merging
+ * 4. Conflict-free timestamped merging of storyboards, frames, shots, and comments
  */
 
 import {
@@ -14,6 +14,10 @@ import {
   fetchDatabaseFromOwnerDrive,
   isOwnerDriveConfigured
 } from './googleDrive';
+
+const FIRESTORE_API_KEY = 'AIzaSyDtOKQKyXG8MXb_lJclUdZixjHV_Ed41fg';
+const FIRESTORE_PROJECT_ID = 'game-43959';
+const FIRESTORE_DOC_URL = `https://firestore.googleapis.com/v1/projects/${FIRESTORE_PROJECT_ID}/databases/(default)/documents/lingotoon_studio/database?key=${FIRESTORE_API_KEY}`;
 
 const BROADCAST_CHANNEL_NAME = 'lingotoon_global_sync_bus';
 let broadcastChannel = null;
@@ -26,7 +30,7 @@ if (typeof window !== 'undefined' && typeof BroadcastChannel !== 'undefined') {
 }
 
 /**
- * Saves current studio state to Cloud & Google Drive.
+ * Saves current studio state to Google Cloud Firestore & Google Drive.
  * 
  * @param {Object} videos - The studio projects dictionary
  * @param {Object} user - The active collaborator making the change
@@ -39,26 +43,47 @@ export async function pushStudioStateToCloud(videos, user = null) {
   // Mark all videos with updated timestamps
   const normalizedVideos = {};
   for (const [id, vid] of Object.entries(videos || {})) {
+    if (id.startsWith('_') || !vid || typeof vid !== 'object') continue;
     normalizedVideos[id] = {
       ...vid,
       updatedAt: vid.updatedAt || timestamp
     };
   }
+  normalizedVideos._lastUpdated = timestamp;
 
-  // Save to Google Cloud Bridge (Dual: Drive Folder + Script Properties)
   let cloudSuccess = false;
-  if (isOwnerDriveConfigured()) {
-    try {
-      const res = await saveDatabaseToOwnerDrive(normalizedVideos);
-      if (res && res.success) {
-        cloudSuccess = true;
+
+  // 1. Primary: Google Cloud Firestore (instant sub-second write)
+  try {
+    const payload = {
+      fields: {
+        updatedAt: { integerValue: String(timestamp) },
+        updatedBy: { stringValue: userName },
+        data: { stringValue: JSON.stringify(normalizedVideos) }
       }
-    } catch (err) {
-      console.warn('Google Cloud sync notice:', err.message);
+    };
+
+    const res = await fetch(FIRESTORE_DOC_URL, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+      cloudSuccess = true;
     }
+  } catch (err) {
+    console.warn('Firestore Cloud sync notice:', err.message);
   }
 
-  // Broadcast to all open tabs on the same machine
+  // 2. Secondary: Google Drive Folder Cloud Bridge (backup archive)
+  if (isOwnerDriveConfigured()) {
+    try {
+      saveDatabaseToOwnerDrive(normalizedVideos).catch(() => {});
+    } catch (e) {}
+  }
+
+  // 3. Broadcast to all open tabs on the same machine
   if (broadcastChannel) {
     try {
       broadcastChannel.postMessage({
@@ -78,25 +103,51 @@ export async function pushStudioStateToCloud(videos, user = null) {
 }
 
 /**
- * Fetches latest studio state from Global Cloud and Google Drive.
+ * Fetches latest studio state from Google Cloud Firestore and Google Drive.
  * Merges newer changes intelligently.
  * 
  * @returns {Promise<{videos: Object, lastUpdated: number, source: string} | null>}
  */
 export async function pullLatestStudioStateFromCloud() {
-  if (!isOwnerDriveConfigured()) return null;
-
+  // 1. Try Google Cloud Firestore
   try {
-    const data = await fetchDatabaseFromOwnerDrive();
-    if (data && typeof data === 'object') {
-      return {
-        videos: data,
-        lastUpdated: Date.now(),
-        source: 'google_cloud'
-      };
+    const res = await fetch(`${FIRESTORE_DOC_URL}&t=${Date.now()}`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.fields && json.fields.data && json.fields.data.stringValue) {
+        const parsed = JSON.parse(json.fields.data.stringValue);
+        const lastUpdated = parseInt(json.fields.updatedAt?.integerValue || '0', 10) || parsed._lastUpdated || 0;
+        return {
+          videos: parsed,
+          lastUpdated: lastUpdated || 1,
+          source: 'google_cloud_firestore'
+        };
+      }
     }
   } catch (err) {
-    // Expected if script is still deploying
+    console.warn('Firestore pull notice:', err.message);
+  }
+
+  // 2. Fallback to Google Drive Bridge if configured
+  if (isOwnerDriveConfigured()) {
+    try {
+      const data = await fetchDatabaseFromOwnerDrive();
+      if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+        let lastUpdated = data._lastUpdated || 0;
+        if (!lastUpdated) {
+          for (const [k, v] of Object.entries(data)) {
+            if (!k.startsWith('_') && v && typeof v === 'object' && v.updatedAt) {
+              lastUpdated = Math.max(lastUpdated, Number(v.updatedAt) || 0);
+            }
+          }
+        }
+        return {
+          videos: data,
+          lastUpdated: lastUpdated || 1,
+          source: 'google_drive'
+        };
+      }
+    } catch (err) {}
   }
 
   return null;
@@ -107,9 +158,14 @@ export async function pullLatestStudioStateFromCloud() {
  * Merges incoming cloud videos into current local videos without losing unsaved edits.
  */
 export function mergeStudioVideos(localVideos = {}, cloudVideos = {}) {
-  const merged = { ...localVideos };
+  const merged = {};
+  for (const [k, v] of Object.entries(localVideos || {})) {
+    if (!k.startsWith('_')) merged[k] = v;
+  }
 
   for (const [vidId, cloudVid] of Object.entries(cloudVideos || {})) {
+    if (vidId.startsWith('_') || !cloudVid || typeof cloudVid !== 'object') continue;
+
     if (!merged[vidId]) {
       // New project created on another device -> Add it immediately!
       merged[vidId] = cloudVid;
@@ -117,11 +173,13 @@ export function mergeStudioVideos(localVideos = {}, cloudVideos = {}) {
     }
 
     const localVid = merged[vidId];
-    const cloudUpdated = cloudVid.updatedAt || 0;
-    const localUpdated = localVid.updatedAt || 0;
+    const cloudUpdated = Number(cloudVid.updatedAt) || 0;
+    const localUpdated = Number(localVid.updatedAt) || 0;
 
     // If cloud has newer or equal timestamp, cloud takes precedence for structural data
-    const baseVid = cloudUpdated >= localUpdated ? { ...localVid, ...cloudVid } : { ...cloudVid, ...localVid };
+    const baseVid = cloudUpdated >= localUpdated
+      ? { ...localVid, ...cloudVid }
+      : { ...cloudVid, ...localVid };
 
     // Merge shots: preserve all shots, comments, and images
     const localShots = localVid.shots || [];
@@ -142,16 +200,28 @@ export function mergeStudioVideos(localVideos = {}, cloudVideos = {}) {
         continue;
       }
 
-      // Merge comments by unique ID
+      // Merge comments intelligently
       const localComments = sLocal.comments || [];
       const cloudComments = sCloud.comments || [];
-      const seenComments = new Set(localComments.map(c => c.id));
-      const combinedComments = [...localComments];
+      let mergedComments;
 
-      for (const c of cloudComments) {
-        if (!seenComments.has(c.id)) {
-          combinedComments.push(c);
-          seenComments.add(c.id);
+      if (cloudUpdated > localUpdated) {
+        const seen = new Set(cloudComments.map(c => c.id));
+        mergedComments = [...cloudComments];
+        for (const lc of localComments) {
+          if (!seen.has(lc.id)) {
+            mergedComments.push(lc);
+            seen.add(lc.id);
+          }
+        }
+      } else {
+        const seen = new Set(localComments.map(c => c.id));
+        mergedComments = [...localComments];
+        for (const cc of cloudComments) {
+          if (!seen.has(cc.id)) {
+            mergedComments.push(cc);
+            seen.add(cc.id);
+          }
         }
       }
 
@@ -160,9 +230,15 @@ export function mergeStudioVideos(localVideos = {}, cloudVideos = {}) {
         ? { ...sLocal, ...sCloud }
         : { ...sCloud, ...sLocal };
 
+      // Ensure pic and image are symmetrical
+      const shotPic = shotBase.pic || shotBase.image || sLocal.pic || sCloud.pic || null;
+      const shotImage = shotBase.image || shotBase.pic || sLocal.image || sCloud.image || null;
+
       mergedShots.push({
         ...shotBase,
-        comments: combinedComments
+        pic: shotPic,
+        image: shotImage,
+        comments: mergedComments
       });
     }
 

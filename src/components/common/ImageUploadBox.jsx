@@ -9,6 +9,7 @@ import {
   isOwnerDriveConfigured,
   uploadImageToOwnerDrive
 } from '../../utils/googleDrive';
+import { compressImageFile } from '../../utils/imageCompressor';
 
 const PRESET_IMAGES = [
   { name: 'Lingotoon Mascot Bird', url: '/bird-mascot.png' },
@@ -49,44 +50,43 @@ export default function ImageUploadBox({
     setUploadError(null);
     setUploadSuccess(false);
 
-    // If Owner's Google Drive is configured for auto-upload, send directly to owner's Drive!
-    if (isCloudHostActive) {
-      try {
-        setIsUploading(true);
-        setUploadStatusMsg('Uploading to Owner Google Drive (TBs Storage)...');
+    try {
+      setIsUploading(true);
+      setUploadStatusMsg('Optimizing image for fast cloud sync...');
 
-        const uploadResult = await uploadImageToOwnerDrive(file, file.name);
-        onChange(uploadResult.directUrl);
-        setUploadSuccess(true);
-        setTimeout(() => setUploadSuccess(false), 4000);
-      } catch (err) {
-        console.info('Direct Google Drive upload notice (saving locally):', err.message);
-        
-        // Seamless Fallback: Read as local data URL directly into frame
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          onChange(event.target?.result);
+      // Compress and optimize to lightweight JPEG/base64 (< 80KB)
+      const compressedDataUrl = await compressImageFile(file, {
+        maxWidth: 1200,
+        maxHeight: 800,
+        quality: 0.82
+      });
+
+      // If Owner Google Drive is configured for auto-upload, try uploading to Drive
+      if (isCloudHostActive) {
+        try {
+          setUploadStatusMsg('Uploading to Owner Google Drive...');
+          const uploadResult = await uploadImageToOwnerDrive(compressedDataUrl || file, file.name);
+          onChange(uploadResult.directUrl);
           setUploadSuccess(true);
-          setTimeout(() => setUploadSuccess(false), 3000);
-        };
-        reader.readAsDataURL(file);
-      } finally {
-        setIsUploading(false);
-        setUploadStatusMsg('');
-        e.target.value = '';
+          setTimeout(() => setUploadSuccess(false), 4000);
+          return;
+        } catch (driveErr) {
+          console.info('Drive upload notice (saving optimized image directly):', driveErr.message);
+        }
       }
-      return;
-    }
 
-    // Default local file reader (instant, reliable, zero-config)
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      onChange(event.target?.result);
+      // Fast, lightweight, zero-latency local & cloud-sync storage
+      onChange(compressedDataUrl);
       setUploadSuccess(true);
-      setTimeout(() => setUploadSuccess(false), 2000);
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
+      setTimeout(() => setUploadSuccess(false), 2500);
+    } catch (err) {
+      console.error('Failed to process image:', err);
+      setUploadError('Failed to process image');
+    } finally {
+      setIsUploading(false);
+      setUploadStatusMsg('');
+      e.target.value = '';
+    }
   };
 
   const handleSaveUrl = (e) => {
