@@ -39,8 +39,15 @@ export function getOwnerDriveConfig() {
 
   const rawApiUrl = (storedApiUrl.trim() || envApiUrl.trim() || DEFAULT_GDRIVE_API_URL).trim();
   const apiUrl = extractDriveApiUrl(rawApiUrl);
+  if (storedApiUrl && storedApiUrl !== apiUrl) {
+    try { localStorage.setItem(STORAGE_KEY_GDRIVE_API, apiUrl); } catch (e) {}
+  }
+
   const folderInput = (storedFolder.trim() || envFolderId.trim() || DEFAULT_GDRIVE_FOLDER_ID).trim();
   const folderId = extractDriveFolderId(folderInput) || folderInput;
+  if (storedFolder && storedFolder !== folderId) {
+    try { localStorage.setItem(STORAGE_KEY_GDRIVE_FOLDER, folderId); } catch (e) {}
+  }
   const autoUpload = autoUploadRaw === 'true';
 
   return {
