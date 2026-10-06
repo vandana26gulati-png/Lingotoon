@@ -78,10 +78,12 @@ export default function ImageUploadBox({
       return;
     }
 
-    // Default local file reader
+    // Default local file reader (instant, reliable, zero-config)
     const reader = new FileReader();
     reader.onload = (event) => {
       onChange(event.target?.result);
+      setUploadSuccess(true);
+      setTimeout(() => setUploadSuccess(false), 2000);
     };
     reader.readAsDataURL(file);
     e.target.value = '';

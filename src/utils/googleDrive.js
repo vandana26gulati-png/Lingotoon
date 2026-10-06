@@ -41,7 +41,7 @@ export function getOwnerDriveConfig() {
   const apiUrl = extractDriveApiUrl(rawApiUrl);
   const folderInput = (storedFolder.trim() || envFolderId.trim() || DEFAULT_GDRIVE_FOLDER_ID).trim();
   const folderId = extractDriveFolderId(folderInput) || folderInput;
-  const autoUpload = autoUploadRaw === null ? true : autoUploadRaw === 'true';
+  const autoUpload = autoUploadRaw === 'true';
 
   return {
     apiUrl,
